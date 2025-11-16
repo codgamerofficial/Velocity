@@ -29,6 +29,7 @@ import { TestPhase, EngineState, TestResult, ClientInfo } from './types';
 import { THROTTLING_PRESETS, SERVER_LOCATIONS, INDIAN_CARRIERS, INDIAN_ISPS } from './constants';
 import Speedometer from './components/Speedometer';
 import LiveChart from './components/LiveChart';
+import LatencyChart from './components/LatencyChart';
 import PacketLossChart from './components/PacketLossChart';
 import StatCard from './components/StatCard';
 import InfoModal from './components/InfoModal';
@@ -47,6 +48,7 @@ const App: React.FC = () => {
     graphData: [],
     downloadGraphData: [],
     uploadGraphData: [],
+    pingGraphData: [],
     packetLossData: []
   });
 
@@ -260,7 +262,7 @@ const App: React.FC = () => {
                     <div className="flex items-center gap-2 px-4 py-2 bg-glass rounded-full border border-glassBorder mb-2">
                        <div className={`w-2 h-2 rounded-full ${clientInfo ? 'bg-accent-green' : 'bg-yellow-500 animate-pulse'}`}></div>
                        
-                       {/* Added Network Type Icon */}
+                       {/* Network Type Icon */}
                        {networkType === 'WiFi' && <Wifi className="w-3 h-3 text-secondary" />}
                        {networkType === 'Ethernet' && <Cable className="w-3 h-3 text-secondary" />}
                        {networkType === '5G' && <Smartphone className="w-3 h-3 text-secondary" />}
@@ -349,11 +351,15 @@ const App: React.FC = () => {
               {/* Graph Section at Bottom of Hero */}
               <div className="border-t border-glassBorder bg-black/20 divide-y divide-glassBorder">
                  <div className="group/graph">
-                    <LiveChart 
-                      downloadData={engineState.downloadGraphData} 
-                      uploadData={engineState.uploadGraphData}
-                      phase={engineState.phase} 
-                    />
+                    {engineState.phase === TestPhase.PING ? (
+                       <LatencyChart data={engineState.pingGraphData} />
+                    ) : (
+                       <LiveChart 
+                         downloadData={engineState.downloadGraphData} 
+                         uploadData={engineState.uploadGraphData}
+                         phase={engineState.phase} 
+                       />
+                    )}
                  </div>
                  
                  <div className="group/graph">

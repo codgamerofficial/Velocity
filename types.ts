@@ -17,6 +17,11 @@ export interface PacketLossPoint {
   loss: number; // Percentage %
 }
 
+export interface PingPoint {
+  time: number;
+  ping: number; // ms
+}
+
 export interface ClientInfo {
   ip: string;
   isp: string;
@@ -53,6 +58,7 @@ export interface EngineState {
   graphData: SpeedPoint[]; // Rolling window for immediate display
   downloadGraphData: SpeedPoint[]; // Full history
   uploadGraphData: SpeedPoint[];   // Full history
+  pingGraphData: PingPoint[];
   packetLossData: PacketLossPoint[];
 }
 

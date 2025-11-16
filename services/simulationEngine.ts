@@ -1,5 +1,5 @@
 
-import { TestPhase, EngineState, SpeedPoint, PacketLossPoint } from "../types";
+import { TestPhase, EngineState, SpeedPoint, PacketLossPoint, PingPoint } from "../types";
 import { measureRealLatency, runRealDownloadTest, getBrowserNetworkEstimates } from "./realNetwork";
 
 /**
@@ -23,6 +23,7 @@ export class NetworkSimulationEngine {
   private _downloadData: SpeedPoint[] = [];
   private _uploadData: SpeedPoint[] = [];
   private _packetLossData: PacketLossPoint[] = [];
+  private _pingData: PingPoint[] = [];
 
   constructor(
     onUpdate: (state: EngineState) => void,
@@ -42,6 +43,7 @@ export class NetworkSimulationEngine {
       graphData: [],
       downloadGraphData: [],
       uploadGraphData: [],
+      pingGraphData: [],
       packetLossData: []
     };
   }
@@ -57,6 +59,7 @@ export class NetworkSimulationEngine {
     this._downloadData = [];
     this._uploadData = [];
     this._packetLossData = [];
+    this._pingData = [];
     
     this.state = {
       ...this.state,
@@ -66,6 +69,7 @@ export class NetworkSimulationEngine {
       graphData: [],
       downloadGraphData: [],
       uploadGraphData: [],
+      pingGraphData: [],
       packetLossData: [],
       downloadPeak: 0,
       uploadPeak: 0,
@@ -78,11 +82,21 @@ export class NetworkSimulationEngine {
     // --- 1. REAL PING PHASE ---
     const pings: number[] = [];
     try {
-      for (let i = 0; i < 8; i++) {
+      // Increased samples for better graph visualization
+      for (let i = 0; i < 20; i++) {
          if (this.abortController.signal.aborted) return;
          const rtt = await measureRealLatency();
-         if (rtt > 0) pings.push(rtt);
-         await new Promise(r => setTimeout(r, 150));
+         if (rtt > 0) {
+           pings.push(rtt);
+           this._pingData.push({ time: Date.now(), ping: rtt });
+           
+           // Update state live
+           const currentAvg = pings.reduce((a, b) => a + b, 0) / pings.length;
+           this.state.ping = Math.floor(currentAvg);
+           this.state.pingGraphData = [...this._pingData];
+           this.onUpdate({ ...this.state });
+         }
+         await new Promise(r => setTimeout(r, 100));
       }
     } catch (e) {
       console.warn("Ping failed", e);
