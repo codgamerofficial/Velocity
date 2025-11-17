@@ -3,7 +3,7 @@ import { ClientInfo } from "../types";
 
 /**
  * Fetches public IP and ISP information using a free geolocation API.
- * Using ipwho.is as it is CORS-friendly and doesn't require an API key for frontend demos.
+ * Using ipwho.is as it is CORS-friendly.
  */
 export const fetchClientInfo = async (): Promise<ClientInfo | null> => {
   try {
@@ -22,7 +22,10 @@ export const fetchClientInfo = async (): Promise<ClientInfo | null> => {
       city: data.city,
       region: data.region,
       country: data.country,
-      flagUrl: data.flag?.img
+      flagUrl: data.flag?.img,
+      asn: data.connection?.asn?.toString(), // Added ASN
+      org: data.connection?.org, // Added Org
+      timezone: data.timezone?.id // Added Timezone
     };
   } catch (error) {
     console.error('Failed to fetch client info:', error);
@@ -31,14 +34,12 @@ export const fetchClientInfo = async (): Promise<ClientInfo | null> => {
 };
 
 /**
- * Performs a real HTTP ping to a high-availability CDN (Cloudflare endpoint).
- * Uses 'no-cors' mode to measure RTT (Round Trip Time) even without reading the body.
+ * Performs a real HTTP ping to a high-availability CDN.
  */
 export const measureRealLatency = async (): Promise<number> => {
   const start = performance.now();
   try {
     // 1.1.1.1/cdn-cgi/trace is a lightweight text endpoint
-    // We add a timestamp to prevent caching
     await fetch(`https://1.1.1.1/cdn-cgi/trace?t=${Date.now()}`, { 
       mode: 'no-cors',
       cache: 'no-store',
@@ -63,7 +64,8 @@ export const getBrowserNetworkEstimates = () => {
       downlink: nav.connection.downlink, // Estimated Mbps
       rtt: nav.connection.rtt, // Estimated RTT
       effectiveType: nav.connection.effectiveType, // '4g', '3g', etc.
-      type: nav.connection.type // 'cellular', 'wifi', 'ethernet' (Experimental)
+      type: nav.connection.type, // 'cellular', 'wifi', 'ethernet' (Experimental)
+      saveData: nav.connection.saveData // Check native data saver preference
     };
   }
   return null;
@@ -81,8 +83,7 @@ export const runRealDownloadTest = async (
   const startTime = performance.now();
   let totalBytes = 0;
   
-  // High-bandwidth assets from Unsplash (Global CDN, CORS enabled)
-  // Using multiple diverse endpoints to avoid single-file bottlenecks
+  // High-bandwidth assets
   const assets = [
     'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=4000&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=4000&auto=format&fit=crop',
@@ -143,7 +144,7 @@ export const runRealDownloadTest = async (
   };
 
   try {
-    // Run 5 parallel connections to saturate typical consumer bandwidth
+    // Run parallel connections
     const tasks = assets.map(url => fetchLoop(url));
     await Promise.all(tasks);
   } catch (e) {

@@ -1,15 +1,6 @@
 
 import { TestPhase, EngineState, SpeedPoint, PacketLossPoint, PingPoint } from "../types";
-import { measureRealLatency, runRealDownloadTest, getBrowserNetworkEstimates } from "./realNetwork";
-
-/**
- * Authentic Network Engine
- * 
- * 1. PING: Measures real HTTP latency to Cloudflare.
- * 2. DOWNLOAD: Performs a REAL bandwidth test using multi-stream fetches.
- * 3. UPLOAD: Estimates upload capacity based on Download/Ping characteristics
- *    (as browser-based real uploads are restricted by CORS/Security without a specialized backend).
- */
+import { measureRealLatency, runRealDownloadTest } from "./realNetwork";
 
 export class NetworkSimulationEngine {
   private state: EngineState;
@@ -38,6 +29,7 @@ export class NetworkSimulationEngine {
       ping: null,
       jitter: null,
       packetLoss: null,
+      stabilityScore: 100,
       downloadPeak: 0,
       uploadPeak: 0,
       graphData: [],
@@ -48,12 +40,33 @@ export class NetworkSimulationEngine {
     };
   }
 
-  public async start(limit: number | null = null, baseLatency: number = 15) {
+  private calculateStabilityScore(jitter: number | null, packetLoss: number | null): number {
+    let score = 100;
+    
+    // Jitter Penalty: 
+    // < 5ms: negligible
+    // 5-20ms: -0.5 per ms
+    // > 20ms: -1 per ms
+    if (jitter) {
+      const jitterPenalty = Math.max(0, jitter - 5) * 0.5 + Math.max(0, jitter - 20) * 0.5;
+      score -= jitterPenalty;
+    }
+    
+    // Packet Loss Penalty: -25 points per 1% loss
+    // Packet loss is severely detrimental to stability.
+    if (packetLoss) {
+      score -= (packetLoss * 25);
+    }
+
+    return Math.max(0, Math.min(100, Math.floor(score)));
+  }
+
+  public async start(limit: number | null = null, baseLatency: number = 15, isDataSaver: boolean = false) {
     this.stop(); // Ensure clean start
     this.abortController = new AbortController();
     
     this.limit = limit;
-    this.baseLatency = baseLatency; // Used for fallback/upload estimation
+    this.baseLatency = baseLatency;
     
     // Reset local buffers
     this._downloadData = [];
@@ -74,16 +87,22 @@ export class NetworkSimulationEngine {
       downloadPeak: 0,
       uploadPeak: 0,
       ping: null,
-      jitter: null
+      jitter: null,
+      packetLoss: 0,
+      stabilityScore: 100
     };
 
     this.onUpdate({ ...this.state });
 
+    // Configurable durations based on Data Saver
+    const DOWNLOAD_DURATION = isDataSaver ? 3000 : 8000;
+    const UPLOAD_DURATION = isDataSaver ? 2000 : 5000;
+    const PING_SAMPLES = isDataSaver ? 8 : 20;
+
     // --- 1. REAL PING PHASE ---
     const pings: number[] = [];
     try {
-      // Increased samples for better graph visualization
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < PING_SAMPLES; i++) {
          if (this.abortController.signal.aborted) return;
          const rtt = await measureRealLatency();
          if (rtt > 0) {
@@ -105,16 +124,15 @@ export class NetworkSimulationEngine {
     if (pings.length === 0) pings.push(this.baseLatency); // Fallback
 
     const avgPing = pings.reduce((a, b) => a + b, 0) / pings.length;
-    // Calculate standard deviation for jitter
     const jitter = Math.sqrt(pings.map(x => Math.pow(x - avgPing, 2)).reduce((a, b) => a + b) / pings.length);
     
     this.state.ping = Math.floor(avgPing);
     this.state.jitter = Math.floor(jitter);
-    this.state.packetLoss = 0; // Assume 0 for HTTP tests usually
+    this.state.packetLoss = 0; 
+    this.state.stabilityScore = this.calculateStabilityScore(this.state.jitter, 0);
     
     this.onUpdate({ ...this.state });
 
-    // Wait briefly
     await new Promise(r => setTimeout(r, 500));
 
     // --- 2. REAL DOWNLOAD PHASE ---
@@ -124,18 +142,15 @@ export class NetworkSimulationEngine {
     this.onUpdate({ ...this.state });
 
     const rawDownloadSpeed = await runRealDownloadTest(
-      8000, // 8 seconds test
+      DOWNLOAD_DURATION,
       (speed, progress) => {
         let displaySpeed = speed;
         
-        // Apply Limit / Throttling Simulation
         if (this.limit && speed > this.limit) {
-          // Add slight organic noise at the limit
           const noise = (Math.random() - 0.5) * (this.limit * 0.02);
           displaySpeed = this.limit + noise;
         }
 
-        // Update state live
         this.state.currentSpeed = displaySpeed;
         this.state.progress = progress;
         
@@ -145,34 +160,38 @@ export class NetworkSimulationEngine {
 
         const point: SpeedPoint = { time: Date.now(), speed: displaySpeed };
         
-        // Update local buffers
         this._downloadData.push(point);
-        
-        // Safe update of state arrays (create new references)
         this.state.downloadGraphData = [...this._downloadData];
         this.state.graphData = [...this.state.graphData, point].slice(-50);
         
-        // Simulate minor packet loss visualization based on jitter
+        // Simulate Packet Loss during load
+        let currentLoss = 0;
         if (Math.random() > 0.95) {
-           this._packetLossData.push({ time: Date.now(), loss: Math.random() * 0.5 });
+           currentLoss = Math.random() * 0.5;
+           this._packetLossData.push({ time: Date.now(), loss: currentLoss });
         } else {
            this._packetLossData.push({ time: Date.now(), loss: 0 });
         }
         this.state.packetLossData = [...this._packetLossData];
+        
+        // Calculate average packet loss for the session so far
+        const totalLoss = this._packetLossData.reduce((acc, p) => acc + p.loss, 0);
+        const avgLoss = this._packetLossData.length > 0 ? totalLoss / this._packetLossData.length : 0;
+        
+        this.state.packetLoss = avgLoss;
+        this.state.stabilityScore = this.calculateStabilityScore(this.state.jitter, avgLoss);
 
         this.onUpdate({ ...this.state });
       },
       this.abortController.signal
     );
 
-    // Ensure final state reflects peak/avg
     this.state.currentSpeed = 0;
     this.onUpdate({ ...this.state });
     
     await new Promise(r => setTimeout(r, 1000));
 
     // --- 3. ESTIMATED UPLOAD PHASE ---
-    // Without a backend, we simulate upload based on download profile
     if (this.abortController.signal.aborted) return;
 
     let effectiveDownload = rawDownloadSpeed;
@@ -180,30 +199,22 @@ export class NetworkSimulationEngine {
       effectiveDownload = this.limit;
     }
 
-    this.runUploadSimulation(effectiveDownload, avgPing);
+    this.runUploadSimulation(effectiveDownload, avgPing, UPLOAD_DURATION);
   }
 
-  private runUploadSimulation(downloadSpeed: number, avgPing: number) {
+  private runUploadSimulation(downloadSpeed: number, avgPing: number, duration: number) {
     this.state.phase = TestPhase.UPLOAD;
     this.state.graphData = [];
-    
-    // Clear packet loss for this phase or keep accumulating? 
-    // Usually separating phases is clearer visually.
+    // Reset packet loss data for clean upload graph, but keep previous stats
+    const previousLoss = this.state.packetLoss || 0;
     this._packetLossData = []; 
     this.state.packetLossData = [];
 
-    
-    // Determine Ratio:
-    // Fiber (low ping) usually symmetrical 1:1
-    // Cable/DSL/Cellular usually 1:10 or 1:5
-    let ratio = 0.2; // Default asymmetric
-    if (avgPing < 10) ratio = 0.95; // Likely Fiber
-    else if (avgPing > 50) ratio = 0.3; // Likely Cellular/DSL
+    let ratio = 0.2;
+    if (avgPing < 10) ratio = 0.95;
+    else if (avgPing > 50) ratio = 0.3;
 
-    // If download is super high (>500), upload is likely also high but maybe capped at 50-100 for coax
     const targetUpload = downloadSpeed * ratio;
-    
-    const DURATION = 5000;
     const start = performance.now();
     
     const loop = () => {
@@ -211,15 +222,14 @@ export class NetworkSimulationEngine {
       
       const now = performance.now();
       const elapsed = now - start;
-      const progress = (elapsed / DURATION) * 100;
+      const progress = (elapsed / duration) * 100;
       
       if (progress >= 100) {
         this.finish();
         return;
       }
 
-      // Sim logic
-      const ramp = Math.min(1, elapsed / 1000); // 1 sec ramp
+      const ramp = Math.min(1, elapsed / 1000); 
       const noise = (Math.random() - 0.5) * (targetUpload * 0.1);
       const speed = (targetUpload * ramp) + noise;
       
@@ -229,13 +239,25 @@ export class NetworkSimulationEngine {
       
       const point = { time: Date.now(), speed: this.state.currentSpeed };
       
-      // Update local buffers
       this._uploadData.push(point);
-      this._packetLossData.push({ time: Date.now(), loss: 0 });
-
-      // Update state with new array references
-      this.state.uploadGraphData = [...this._uploadData];
+      
+      // Minor packet loss simulation during upload
+      let currentLoss = 0;
+      if (Math.random() > 0.98) {
+        currentLoss = Math.random() * 0.3;
+      }
+      this._packetLossData.push({ time: Date.now(), loss: currentLoss });
       this.state.packetLossData = [...this._packetLossData];
+      
+      // Update average loss (weighted with previous)
+      const uploadLossTotal = this._packetLossData.reduce((acc, p) => acc + p.loss, 0);
+      const uploadLossAvg = this._packetLossData.length > 0 ? uploadLossTotal / this._packetLossData.length : 0;
+      // Combined average (simplified)
+      this.state.packetLoss = (previousLoss + uploadLossAvg) / 2;
+
+      this.state.stabilityScore = this.calculateStabilityScore(this.state.jitter, this.state.packetLoss);
+
+      this.state.uploadGraphData = [...this._uploadData];
       this.state.graphData = [...this.state.graphData, point].slice(-50);
 
       this.onUpdate({ ...this.state });

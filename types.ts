@@ -29,6 +29,9 @@ export interface ClientInfo {
   country: string;
   region: string;
   flagUrl?: string;
+  asn?: string;
+  org?: string;
+  timezone?: string;
 }
 
 export interface TestResult {
@@ -39,11 +42,15 @@ export interface TestResult {
   packetLoss: number; // %
   downloadSpeed: number; // Mbps
   uploadSpeed: number; // Mbps
-  consistencyScore: number; // 0-100
+  stabilityScore: number; // 0-100
+  consistencyScore: number; // 0-100 (Legacy, can be same as stability)
   serverLocation: string;
   networkType: 'WiFi' | 'Ethernet' | '5G';
   provider?: string;
   clientInfo?: ClientInfo; // Real client data
+  aiAnalysis?: string; // Markdown string from Gemini
+  isWifi6E?: boolean;
+  isDataSaver?: boolean;
 }
 
 export interface EngineState {
@@ -53,6 +60,7 @@ export interface EngineState {
   ping: number | null;
   jitter: number | null;
   packetLoss: number | null;
+  stabilityScore: number; // 0-100, Real-time
   downloadPeak: number;
   uploadPeak: number;
   graphData: SpeedPoint[]; // Rolling window for immediate display
@@ -87,6 +95,7 @@ export interface NetworkInformation extends EventTarget {
   readonly effectiveType?: string;
   readonly rtt?: number;
   readonly saveData?: boolean;
+  readonly type?: 'bluetooth' | 'cellular' | 'ethernet' | 'none' | 'wifi' | 'wimax' | 'other' | 'unknown';
   onchange?: EventListener;
 }
 
