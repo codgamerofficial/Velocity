@@ -27,7 +27,8 @@ import {
   FileJson,
   Scale,
   Copy,
-  Check
+  Check,
+  HeartPulse
 } from 'lucide-react';
 import { NetworkSimulationEngine } from './services/simulationEngine';
 import { fetchClientInfo, getBrowserNetworkEstimates } from './services/realNetwork';
@@ -57,6 +58,7 @@ const getProviderLogoData = (name: string) => {
   if (normalized.includes('bsnl')) return { bg: '008000', color: 'fff', text: 'BSNL' };
   if (normalized.includes('act')) return { bg: 'ed1c24', color: 'fff', text: 'ACT' };
   if (normalized.includes('hathway')) return { bg: '0066cc', color: 'fff', text: 'Hath' };
+  if (normalized.includes('tataplay')) return { bg: 'da1c5c', color: 'fff', text: 'Tata' };
   if (normalized.includes('excitel')) return { bg: 'ff0000', color: 'fff', text: 'Exci' };
   if (normalized.includes('google')) return { bg: '4285F4', color: 'fff', text: 'G' };
   if (normalized.includes('t-mobile')) return { bg: 'ea0a8e', color: 'fff', text: 'T-Mo' };
@@ -68,6 +70,63 @@ const getProviderLogoData = (name: string) => {
   // Default Fallback
   const displayText = (name && name.length >= 2) ? name.substring(0, 2).toUpperCase() : 'UK';
   return { bg: '334155', color: 'cbd5e1', text: displayText };
+};
+
+// Helper to calculate Overall Network Health based on metrics
+const getNetworkHealth = (ping: number | null, jitter: number | null, loss: number | null) => {
+  if (ping === null || jitter === null) {
+    return { 
+      label: 'System Ready', 
+      color: 'text-secondary', 
+      dot: 'bg-secondary', 
+      border: 'border-white/5', 
+      bg: 'bg-white/5' 
+    };
+  }
+  
+  const p = ping || 0;
+  const j = jitter || 0;
+  const l = loss || 0;
+
+  // Grading Logic
+  // Poor: High packet loss (>2%) OR very high latency (>150ms) OR extreme jitter (>30ms)
+  if (l > 2 || p > 150 || j > 30) {
+    return { 
+      label: 'Poor Quality', 
+      color: 'text-red-400', 
+      dot: 'bg-red-400', 
+      border: 'border-red-500/20', 
+      bg: 'bg-red-500/10' 
+    };
+  }
+  // Fair: Slight packet loss OR high latency (>80ms) OR moderate jitter (>15ms)
+  if (l > 0.5 || p > 80 || j > 15) {
+    return { 
+      label: 'Fair Quality', 
+      color: 'text-yellow-400', 
+      dot: 'bg-yellow-400', 
+      border: 'border-yellow-500/20', 
+      bg: 'bg-yellow-500/10' 
+    };
+  }
+  // Good: Reasonable latency (>40ms) or slight jitter (>5ms)
+  if (p > 40 || j > 5) {
+    return { 
+      label: 'Good Quality', 
+      color: 'text-blue-400', 
+      dot: 'bg-blue-400', 
+      border: 'border-blue-500/20', 
+      bg: 'bg-blue-500/10' 
+    };
+  }
+  // Excellent: Low latency, minimal jitter, no loss
+  return { 
+    label: 'Excellent', 
+    color: 'text-green-400', 
+    dot: 'bg-green-400', 
+    border: 'border-green-500/20', 
+    bg: 'bg-green-500/10' 
+  };
 };
 
 const App: React.FC = () => {
@@ -287,6 +346,19 @@ const App: React.FC = () => {
     return 'text-red-400';
   };
 
+  // Calculate dynamic health status
+  const healthMetrics = useMemo(() => {
+    if (engineState.phase !== TestPhase.IDLE) {
+       return { p: engineState.ping, j: engineState.jitter, l: engineState.packetLoss };
+    }
+    if (history.length > 0) {
+       return { p: history[0].ping, j: history[0].jitter, l: history[0].packetLoss };
+    }
+    return { p: null, j: null, l: null };
+  }, [engineState.phase, engineState.ping, engineState.jitter, engineState.packetLoss, history]);
+
+  const healthStatus = getNetworkHealth(healthMetrics.p, healthMetrics.j, healthMetrics.l);
+
   return (
     <div className="min-h-screen bg-surface text-primary font-sans selection:bg-accent-cyan selection:text-black transition-colors duration-300">
       
@@ -316,6 +388,12 @@ const App: React.FC = () => {
                </button>
 
               <div className="h-4 w-px bg-glassBorder hidden sm:block"></div>
+              
+              {/* Health Indicator */}
+              <div className={`hidden md:flex items-center gap-2 px-3 py-1 rounded-full border ${healthStatus.border} ${healthStatus.bg} transition-all duration-500`}>
+                 <div className={`w-2 h-2 rounded-full ${healthStatus.dot} ${isActive ? 'animate-pulse' : ''}`} />
+                 <span className={`text-xs font-bold ${healthStatus.color}`}>{healthStatus.label}</span>
+              </div>
 
               <div className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-slate-600'}`} />
