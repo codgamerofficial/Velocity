@@ -9,9 +9,7 @@ import {
   ShieldCheck, 
   Zap, 
   Clock,
-  BarChart3,
   Play,
-  RotateCcw,
   Settings2,
   Smartphone,
   Cable,
@@ -19,21 +17,16 @@ import {
   Sun,
   Moon,
   Signal,
-  MapPin,
-  Router,
-  Network,
-  Download,
-  Database,
-  FileJson,
   Scale,
   Copy,
   Check,
-  HeartPulse
+  Database,
+  FileJson
 } from 'lucide-react';
 import { NetworkSimulationEngine } from './services/simulationEngine';
 import { fetchClientInfo, getBrowserNetworkEstimates } from './services/realNetwork';
 import { TestPhase, EngineState, TestResult, ClientInfo } from './types';
-import { THROTTLING_PRESETS, SERVER_LOCATIONS, INDIAN_CARRIERS, INDIAN_ISPS } from './constants';
+import { THROTTLING_PRESETS, SERVER_LOCATIONS } from './constants';
 import Speedometer from './components/Speedometer';
 import LiveChart from './components/LiveChart';
 import LatencyChart from './components/LatencyChart';
@@ -46,30 +39,42 @@ import ResultDetailsModal from './components/ResultDetailsModal';
 // Moved outside component for stability and performance
 const getProviderLogoData = (name: string) => {
   const normalized = (name || '').toLowerCase();
+  let data = { bg: '334155', color: 'cbd5e1', text: (name && name.length >= 2) ? name.substring(0, 2).toUpperCase() : 'UK' };
   
   // Map common providers to their brand colors and short text
-  if (normalized.includes('jio')) return { bg: '0f52ba', color: 'fff', text: 'Jio' };
-  if (normalized.includes('airtel')) return { bg: 'ff0000', color: 'fff', text: 'Airtel' };
-  if (normalized.includes('verizon')) return { bg: 'cd040b', color: 'fff', text: 'VZ' };
-  if (normalized.includes('at&t')) return { bg: '00a8e0', color: 'fff', text: 'AT&T' };
-  if (normalized.includes('comcast') || normalized.includes('xfinity')) return { bg: '7b4397', color: 'fff', text: 'Xfinity' };
-  if (normalized.includes('spectrum')) return { bg: '005da6', color: 'fff', text: 'Spectrum' };
-  if (normalized.includes('vodafone') || normalized === 'vi' || normalized.includes('vi ')) return { bg: 'e60000', color: 'fff', text: 'Vi' };
-  if (normalized.includes('bsnl')) return { bg: '008000', color: 'fff', text: 'BSNL' };
-  if (normalized.includes('act')) return { bg: 'ed1c24', color: 'fff', text: 'ACT' };
-  if (normalized.includes('hathway')) return { bg: '0066cc', color: 'fff', text: 'Hath' };
-  if (normalized.includes('tataplay')) return { bg: 'da1c5c', color: 'fff', text: 'Tata' };
-  if (normalized.includes('excitel')) return { bg: 'ff0000', color: 'fff', text: 'Exci' };
-  if (normalized.includes('google')) return { bg: '4285F4', color: 'fff', text: 'G' };
-  if (normalized.includes('t-mobile')) return { bg: 'ea0a8e', color: 'fff', text: 'T-Mo' };
-  if (normalized.includes('orange')) return { bg: 'ff7900', color: 'fff', text: 'Orange' };
-  if (normalized.includes('starlink')) return { bg: '000000', color: 'fff', text: 'Star' };
-  if (normalized.includes('centurylink') || normalized.includes('lumen')) return { bg: '009f4d', color: 'fff', text: 'Lumen' };
-  if (normalized.includes('frontier')) return { bg: 'ff0037', color: 'fff', text: 'Frontier' };
+  if (normalized.includes('jio')) data = { bg: '0f52ba', color: 'fff', text: 'Jio' };
+  else if (normalized.includes('airtel')) data = { bg: 'ff0000', color: 'fff', text: 'Airtel' };
+  else if (normalized.includes('verizon')) data = { bg: 'cd040b', color: 'fff', text: 'VZ' };
+  else if (normalized.includes('at&t')) data = { bg: '00a8e0', color: 'fff', text: 'AT&T' };
+  else if (normalized.includes('comcast') || normalized.includes('xfinity')) data = { bg: '7b4397', color: 'fff', text: 'Xfinity' };
+  else if (normalized.includes('spectrum') || normalized.includes('charter')) data = { bg: '005da6', color: 'fff', text: 'Spectrum' };
+  else if (normalized.includes('vodafone') || normalized === 'vi' || normalized.includes('vi ')) data = { bg: 'e60000', color: 'fff', text: 'Vi' };
+  else if (normalized.includes('bsnl')) data = { bg: '008000', color: 'fff', text: 'BSNL' };
+  else if (normalized.includes('act')) data = { bg: 'ed1c24', color: 'fff', text: 'ACT' };
+  else if (normalized.includes('hathway')) data = { bg: '0066cc', color: 'fff', text: 'Hath' };
+  else if (normalized.includes('tataplay') || normalized.includes('tata play')) data = { bg: 'da1c5c', color: 'fff', text: 'Tata' };
+  else if (normalized.includes('excitel')) data = { bg: 'ff0000', color: 'fff', text: 'Exci' };
+  else if (normalized.includes('you')) data = { bg: 'ffcc00', color: '000', text: 'YOU' };
+  else if (normalized.includes('gtpl')) data = { bg: '0066cc', color: 'fff', text: 'GTPL' };
+  else if (normalized.includes('google')) data = { bg: '4285F4', color: 'fff', text: 'Google' };
+  else if (normalized.includes('t-mobile')) data = { bg: 'ea0a8e', color: 'fff', text: 'T-Mo' };
+  else if (normalized.includes('orange')) data = { bg: 'ff7900', color: 'fff', text: 'Orange' };
+  else if (normalized.includes('starlink')) data = { bg: '000000', color: 'fff', text: 'Star' };
+  else if (normalized.includes('centurylink') || normalized.includes('lumen')) data = { bg: '009f4d', color: 'fff', text: 'Lumen' };
+  else if (normalized.includes('frontier')) data = { bg: 'ff0037', color: 'fff', text: 'Frontier' };
+  else if (normalized.includes('cox')) data = { bg: '00549f', color: 'fff', text: 'Cox' };
+  else if (normalized.includes('rogers')) data = { bg: 'da291c', color: 'fff', text: 'Rogers' };
+  else if (normalized.includes('bell')) data = { bg: '00388d', color: 'fff', text: 'Bell' };
+  else if (normalized.includes('telus')) data = { bg: '4b2882', color: 'fff', text: 'Telus' };
+  else if (normalized.includes('bt') || normalized.includes('british telecom')) data = { bg: '5514b4', color: 'fff', text: 'BT' };
+  else if (normalized.includes('virgin')) data = { bg: 'e10a0a', color: 'fff', text: 'Virgin' };
+  else if (normalized.includes('sky')) data = { bg: 'ea0a8e', color: 'fff', text: 'Sky' };
+  else if (normalized.includes('telekom') || normalized.includes('deutsche')) data = { bg: 'e20074', color: 'fff', text: 'Tele' };
 
-  // Default Fallback
-  const displayText = (name && name.length >= 2) ? name.substring(0, 2).toUpperCase() : 'UK';
-  return { bg: '334155', color: 'cbd5e1', text: displayText };
+  return { 
+    ...data, 
+    url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.text)}&background=${data.bg}&color=${data.color}&size=64&bold=true&font-size=0.45&rounded=true`
+  };
 };
 
 // Helper to calculate Overall Network Health based on metrics
@@ -78,7 +83,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
     return { 
       label: 'System Ready', 
       color: 'text-secondary', 
-      dot: 'bg-secondary', 
+      barColor: 'bg-secondary',
+      level: 0,
       border: 'border-white/5', 
       bg: 'bg-white/5' 
     };
@@ -94,7 +100,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
     return { 
       label: 'Poor Quality', 
       color: 'text-red-400', 
-      dot: 'bg-red-400', 
+      barColor: 'bg-red-400',
+      level: 1,
       border: 'border-red-500/20', 
       bg: 'bg-red-500/10' 
     };
@@ -104,7 +111,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
     return { 
       label: 'Fair Quality', 
       color: 'text-yellow-400', 
-      dot: 'bg-yellow-400', 
+      barColor: 'bg-yellow-400',
+      level: 2,
       border: 'border-yellow-500/20', 
       bg: 'bg-yellow-500/10' 
     };
@@ -114,7 +122,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
     return { 
       label: 'Good Quality', 
       color: 'text-blue-400', 
-      dot: 'bg-blue-400', 
+      barColor: 'bg-blue-400',
+      level: 3,
       border: 'border-blue-500/20', 
       bg: 'bg-blue-500/10' 
     };
@@ -123,7 +132,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
   return { 
     label: 'Excellent', 
     color: 'text-green-400', 
-    dot: 'bg-green-400', 
+    barColor: 'bg-green-400',
+    level: 4,
     border: 'border-green-500/20', 
     bg: 'bg-green-500/10' 
   };
@@ -151,9 +161,31 @@ const App: React.FC = () => {
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
-  const [throttlingLimit, setThrottlingLimit] = useState<number | null>(null);
+  
+  // Initialize throttling limit from local storage
+  const [throttlingLimit, setThrottlingLimit] = useState<number | null>(() => {
+    try {
+      const savedId = localStorage.getItem('velocity_throttling_id');
+      const preset = THROTTLING_PRESETS.find(p => p.id === savedId);
+      return preset ? preset.limit : null;
+    } catch {
+      return null;
+    }
+  });
+  
   const [networkType, setNetworkType] = useState<'WiFi' | 'Ethernet' | '5G'>('WiFi');
-  const [selectedServer, setSelectedServer] = useState(SERVER_LOCATIONS[0]);
+  
+  // Initialize server selection from local storage
+  const [selectedServer, setSelectedServer] = useState(() => {
+    try {
+      const savedId = localStorage.getItem('velocity_server_id');
+      const found = SERVER_LOCATIONS.find(s => s.id === savedId);
+      return found || SERVER_LOCATIONS[0];
+    } catch {
+      return SERVER_LOCATIONS[0];
+    }
+  });
+
   const [providerName, setProviderName] = useState<string>('Detecting...');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [clientInfo, setClientInfo] = useState<ClientInfo | null>(null);
@@ -164,9 +196,31 @@ const App: React.FC = () => {
   
   // Keep track of latest configuration to avoid stale closures in callbacks
   const configRef = useRef({ networkType, selectedServer, providerName, clientInfo, isDataSaver });
+  
   useEffect(() => {
     configRef.current = { networkType, selectedServer, providerName, clientInfo, isDataSaver };
   }, [networkType, selectedServer, providerName, clientInfo, isDataSaver]);
+
+  // Persist preferences
+  useEffect(() => {
+    try {
+      const preset = THROTTLING_PRESETS.find(p => p.limit === throttlingLimit);
+      const id = preset ? preset.id : 'native';
+      localStorage.setItem('velocity_throttling_id', id);
+    } catch (e) {
+      // Ignore storage errors
+    }
+  }, [throttlingLimit]);
+
+  useEffect(() => {
+    try {
+      if (selectedServer?.id) {
+        localStorage.setItem('velocity_server_id', selectedServer.id);
+      }
+    } catch (e) {
+      // Ignore storage errors
+    }
+  }, [selectedServer]);
 
   // Load Real Client Info on Mount and Autodetect Provider/Network Type
   useEffect(() => {
@@ -298,6 +352,7 @@ const App: React.FC = () => {
       return { 
         icon: <Cable className="w-3.5 h-3.5" />, 
         label: 'ETHERNET', 
+        badge: null,
         style: 'bg-green-500/10 border-green-500/30 text-green-400 shadow-green-500/20'
       };
     }
@@ -307,7 +362,8 @@ const App: React.FC = () => {
       
       return { 
         icon: <Wifi className="w-3.5 h-3.5" />, 
-        label: hasWifi6E ? 'WI-FI 6E' : 'WI-FI',
+        label: 'WI-FI',
+        badge: hasWifi6E ? '6E' : null,
         style: hasWifi6E 
           ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-cyan-500/20' 
           : 'bg-blue-500/10 border-blue-500/30 text-blue-400 shadow-blue-500/20'
@@ -317,13 +373,13 @@ const App: React.FC = () => {
     const is5G = providerName.toLowerCase().includes('5g') || (clientInfo?.isp || '').toLowerCase().includes('5g');
     return { 
       icon: <Signal className="w-3.5 h-3.5" />, 
-      label: is5G ? '5G NR' : '4G LTE',
+      label: is5G ? '5G NR' : '4G LTE', 
+      badge: null,
       style: 'bg-purple-500/10 border-purple-500/30 text-purple-400 shadow-purple-500/20'
     };
   };
 
   const logoData = getProviderLogoData(providerName);
-  const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(logoData.text)}&background=${logoData.bg}&color=${logoData.color}&size=64&bold=true&font-size=0.45&rounded=true`;
 
   // Determine if we are active
   const isActive = engineState.phase !== TestPhase.IDLE && engineState.phase !== TestPhase.COMPLETE;
@@ -389,10 +445,44 @@ const App: React.FC = () => {
 
               <div className="h-4 w-px bg-glassBorder hidden sm:block"></div>
               
-              {/* Health Indicator */}
-              <div className={`hidden md:flex items-center gap-2 px-3 py-1 rounded-full border ${healthStatus.border} ${healthStatus.bg} transition-all duration-500`}>
-                 <div className={`w-2 h-2 rounded-full ${healthStatus.dot} ${isActive ? 'animate-pulse' : ''}`} />
-                 <span className={`text-xs font-bold ${healthStatus.color}`}>{healthStatus.label}</span>
+              {/* Enhanced Health Indicator with Signal Bars */}
+              <div className={`hidden md:flex items-center gap-3 px-4 py-1.5 rounded-full border ${healthStatus.border} ${healthStatus.bg} transition-all duration-500 group relative`}>
+                 
+                 {/* Signal Bars */}
+                 <div className="flex items-end gap-0.5 h-3">
+                    {[1, 2, 3, 4].map(bar => (
+                      <div 
+                        key={bar}
+                        className={`w-1 rounded-[1px] transition-all duration-500 ${bar <= healthStatus.level ? healthStatus.barColor : 'bg-current opacity-20'}`}
+                        style={{ height: `${bar * 25}%` }}
+                      />
+                    ))}
+                 </div>
+
+                 <div className="flex flex-col leading-none">
+                   <span className="text-[9px] text-secondary font-medium uppercase tracking-wider mb-0.5">Network Health</span>
+                   <span className={`text-xs font-bold ${healthStatus.color}`}>{healthStatus.label}</span>
+                 </div>
+                 
+                 {/* Detailed Tooltip on Hover */}
+                 {healthStatus.level > 0 && (
+                   <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-panel/95 backdrop-blur-xl border border-glassBorder shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-y-1 group-hover:translate-y-0 z-50">
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="text-secondary">Ping</span>
+                          <span className={`font-mono ${healthMetrics.p! > 40 ? 'text-yellow-400' : 'text-primary'}`}>{healthMetrics.p} ms</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-secondary">Jitter</span>
+                          <span className={`font-mono ${healthMetrics.j! > 10 ? 'text-yellow-400' : 'text-primary'}`}>{healthMetrics.j} ms</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-secondary">Loss</span>
+                          <span className={`font-mono ${healthMetrics.l! > 0 ? 'text-red-400' : 'text-primary'}`}>{healthMetrics.l?.toFixed(2)}%</span>
+                        </div>
+                      </div>
+                   </div>
+                 )}
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -460,7 +550,14 @@ const App: React.FC = () => {
                       {/* Network Type Badge */}
                       <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full border backdrop-blur-md transition-all duration-300 shadow-lg cursor-help group-hover:scale-105 ${netDisplay.style}`}>
                          {netDisplay.icon}
-                         <span className="text-xs font-bold tracking-wider uppercase">{netDisplay.label}</span>
+                         <div className="flex items-center gap-1">
+                           <span className="text-xs font-bold tracking-wider uppercase">{netDisplay.label}</span>
+                           {netDisplay.badge && (
+                             <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-[9px] font-extrabold tracking-tight shadow-sm border border-white/10">
+                               {netDisplay.badge}
+                             </span>
+                           )}
+                         </div>
                          {clientInfo && <Info className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />}
                       </div>
 
@@ -468,7 +565,7 @@ const App: React.FC = () => {
                       <div className="flex items-center justify-center gap-2 mt-1">
                          {/* Branded Logo */}
                          <img 
-                           src={logoUrl} 
+                           src={logoData.url} 
                            alt={providerName} 
                            className="w-6 h-6 rounded-full shadow-sm border border-glassBorder bg-white/10"
                            onError={(e) => {
@@ -777,7 +874,7 @@ const App: React.FC = () => {
       <ResultDetailsModal 
         isOpen={showResultModal} 
         onClose={() => setShowResultModal(false)} 
-        result={selectedTest}
+        result={selectedTest} 
         onUpdateResult={handleUpdateResult}
       />
     </div>
