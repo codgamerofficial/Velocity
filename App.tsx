@@ -21,7 +21,9 @@ import {
   Copy,
   Check,
   Database,
-  FileJson
+  FileJson,
+  Map as MapIcon,
+  Sparkles
 } from 'lucide-react';
 import { NetworkSimulationEngine } from './services/simulationEngine';
 import { fetchClientInfo, getBrowserNetworkEstimates } from './services/realNetwork';
@@ -34,6 +36,7 @@ import PacketLossChart from './components/PacketLossChart';
 import StatCard from './components/StatCard';
 import InfoModal from './components/InfoModal';
 import ResultDetailsModal from './components/ResultDetailsModal';
+import CoverageMapModal from './components/CoverageMapModal';
 
 // Helper to get Brand Colors/Logo Data
 // Moved outside component for stability and performance
@@ -78,6 +81,7 @@ const getProviderLogoData = (name: string) => {
 };
 
 // Helper to calculate Overall Network Health based on metrics
+// Updated with Theme-Aware Classes (Dark/Light support)
 const getNetworkHealth = (ping: number | null, jitter: number | null, loss: number | null) => {
   if (ping === null || jitter === null) {
     return { 
@@ -85,8 +89,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
       color: 'text-secondary', 
       barColor: 'bg-secondary',
       level: 0,
-      border: 'border-white/5', 
-      bg: 'bg-white/5' 
+      border: 'border-black/5 dark:border-white/5', 
+      bg: 'bg-black/5 dark:bg-white/5' 
     };
   }
   
@@ -99,8 +103,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
   if (l > 2 || p > 150 || j > 30) {
     return { 
       label: 'Poor Quality', 
-      color: 'text-red-400', 
-      barColor: 'bg-red-400',
+      color: 'text-red-600 dark:text-red-400', 
+      barColor: 'bg-red-500 dark:bg-red-400',
       level: 1,
       border: 'border-red-500/20', 
       bg: 'bg-red-500/10' 
@@ -110,8 +114,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
   if (l > 0.5 || p > 80 || j > 15) {
     return { 
       label: 'Fair Quality', 
-      color: 'text-yellow-400', 
-      barColor: 'bg-yellow-400',
+      color: 'text-yellow-600 dark:text-yellow-400', 
+      barColor: 'bg-yellow-500 dark:bg-yellow-400',
       level: 2,
       border: 'border-yellow-500/20', 
       bg: 'bg-yellow-500/10' 
@@ -121,8 +125,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
   if (p > 40 || j > 5) {
     return { 
       label: 'Good Quality', 
-      color: 'text-blue-400', 
-      barColor: 'bg-blue-400',
+      color: 'text-blue-600 dark:text-blue-400', 
+      barColor: 'bg-blue-500 dark:bg-blue-400',
       level: 3,
       border: 'border-blue-500/20', 
       bg: 'bg-blue-500/10' 
@@ -131,8 +135,8 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
   // Excellent: Low latency, minimal jitter, no loss
   return { 
     label: 'Excellent', 
-    color: 'text-green-400', 
-    barColor: 'bg-green-400',
+    color: 'text-green-600 dark:text-green-400', 
+    barColor: 'bg-green-500 dark:bg-green-400',
     level: 4,
     border: 'border-green-500/20', 
     bg: 'bg-green-500/10' 
@@ -161,6 +165,8 @@ const App: React.FC = () => {
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [openWithAI, setOpenWithAI] = useState(false);
   
   // Initialize throttling limit from local storage
   const [throttlingLimit, setThrottlingLimit] = useState<number | null>(() => {
@@ -226,10 +232,16 @@ const App: React.FC = () => {
   useEffect(() => {
     // 1. Try native browser API for immediate network type detection
     const est = getBrowserNetworkEstimates();
-    if (est && est.type) {
-      if (est.type === 'cellular') setNetworkType('5G');
-      else if (est.type === 'wifi') setNetworkType('WiFi');
-      else if (est.type === 'ethernet') setNetworkType('Ethernet');
+    let browserDetectedType: 'WiFi' | 'Ethernet' | '5G' | null = null;
+
+    if (est && est.type && est.type !== 'unknown') {
+      if (est.type === 'cellular') browserDetectedType = '5G';
+      else if (est.type === 'wifi') browserDetectedType = 'WiFi';
+      else if (est.type === 'ethernet') browserDetectedType = 'Ethernet';
+      
+      if (browserDetectedType) {
+         setNetworkType(browserDetectedType);
+      }
     }
 
     // 2. Fetch detailed IP info for Provider Name and fallback detection
@@ -242,18 +254,46 @@ const App: React.FC = () => {
           setProviderName(info.isp);
         }
 
-        // If browser API didn't return a specific type, infer from ISP name
-        if (!est || !est.type) {
-          const ispLower = (info.isp || '').toLowerCase();
-          const mobileKeywords = ['mobile', 'cellular', 'jio', 'at&t', 'verizon', 't-mobile', 'vodafone', 'airtel', 'bsnl', 'lte', 'tel'];
-          const fiberKeywords = ['fiber', 'broadband', 'cable', 'act', 'hathway'];
-          
-          const isMobile = mobileKeywords.some(k => ispLower.includes(k)) && !fiberKeywords.some(k => ispLower.includes(k));
-          
-          if (isMobile) {
+        // If browser API didn't return a specific type (or is unsupported), infer from ISP name
+        if (!browserDetectedType) {
+          const isp = (info.isp || '').toLowerCase();
+          const org = (info.org || '').toLowerCase();
+          const fullString = `${isp} ${org}`;
+
+          // Explicit Fixed Line keywords (Fiber/Broadband/Cable/DSL)
+          const fixedKeywords = [
+            'fiber', 'fibernet', 'broadband', 'cable', 'dsl', 'ftth', 
+            'act', 'hathway', 'excitel', 'gtpl', 'you broadband', 
+            'tata play', 'xfinity', 'comcast', 'spectrum', 'charter',
+            'alliance', 'spectranet', 'tikona', 'railwire', 'bsnl broadband',
+            'verizon fios', 'at&t internet', 'centurylink', 'frontier'
+          ];
+
+          // Explicit Mobile keywords
+          const mobileKeywords = [
+            'mobile', 'cellular', 'wireless', 'lte', 'gsm', '3g', '4g', '5g', 'gprs',
+            't-mobile', 'verizon wireless', 'at&t mobility', 'google fi', 'mint mobile'
+          ];
+
+          // Ambiguous Providers (Major Telcos) - default to Mobile if "fiber" is absent
+          // These are providers that primarily started as mobile or have massive mobile user bases
+          // If the ISP string is just "Reliance Jio" or "Bharti Airtel" without "Fiber", it's often mobile data hotspot or direct.
+          const telcoKeywords = ['jio', 'airtel', 'vi', 'vodafone', 'idea', 'bsnl', 'mtnl', 'o2', 'ee', 'three'];
+
+          const isFixed = fixedKeywords.some(k => fullString.includes(k));
+          const isExplicitMobile = mobileKeywords.some(k => fullString.includes(k));
+          const isTelco = telcoKeywords.some(k => fullString.includes(k));
+
+          if (isFixed) {
+            setNetworkType('WiFi'); // Most desktop/laptop users on fixed lines use WiFi
+          } else if (isExplicitMobile) {
+            setNetworkType('5G');
+          } else if (isTelco) {
+            // Heuristic: If it's a major telco and didn't explicitly say "fiber", assume mobile network
             setNetworkType('5G');
           } else {
-            setNetworkType('WiFi'); // Default to WiFi for typical broadband
+            // Default fallback for generic ISPs or Corporate networks
+            setNetworkType('WiFi');
           }
         }
       } else {
@@ -306,6 +346,7 @@ const App: React.FC = () => {
     };
     setHistory(prev => [newResult, ...prev]);
     setSelectedResultId(newResult.id);
+    setOpenWithAI(false);
     setShowResultModal(true);
   }, []);
 
@@ -347,13 +388,14 @@ const App: React.FC = () => {
   };
 
   // Helper to determine display details for Network Type
+  // Updated to use theme-aware text colors
   const getNetworkDisplay = () => {
     if (networkType === 'Ethernet') {
       return { 
         icon: <Cable className="w-3.5 h-3.5" />, 
         label: 'ETHERNET', 
         badge: null,
-        style: 'bg-green-500/10 border-green-500/30 text-green-400 shadow-green-500/20'
+        style: 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400 shadow-green-500/20'
       };
     }
     if (networkType === 'WiFi') {
@@ -365,8 +407,8 @@ const App: React.FC = () => {
         label: 'WI-FI',
         badge: hasWifi6E ? '6E' : null,
         style: hasWifi6E 
-          ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-cyan-500/20' 
-          : 'bg-blue-500/10 border-blue-500/30 text-blue-400 shadow-blue-500/20'
+          ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400 shadow-cyan-500/20' 
+          : 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400 shadow-blue-500/20'
       };
     }
     // 5G / Cellular
@@ -375,7 +417,7 @@ const App: React.FC = () => {
       icon: <Signal className="w-3.5 h-3.5" />, 
       label: is5G ? '5G NR' : '4G LTE', 
       badge: null,
-      style: 'bg-purple-500/10 border-purple-500/30 text-purple-400 shadow-purple-500/20'
+      style: 'bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400 shadow-purple-500/20'
     };
   };
 
@@ -397,9 +439,9 @@ const App: React.FC = () => {
 
   // Determine Stability Color
   const getStabilityColor = (score: number) => {
-    if (score >= 90) return 'text-green-400';
-    if (score >= 70) return 'text-yellow-400';
-    return 'text-red-400';
+    if (score >= 90) return 'text-green-600 dark:text-green-400';
+    if (score >= 70) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   // Calculate dynamic health status
@@ -445,9 +487,15 @@ const App: React.FC = () => {
 
               <div className="h-4 w-px bg-glassBorder hidden sm:block"></div>
               
-              {/* Enhanced Health Indicator with Signal Bars */}
+              {/* Network Status & Signal Strength Indicator */}
               <div className={`hidden md:flex items-center gap-3 px-4 py-1.5 rounded-full border ${healthStatus.border} ${healthStatus.bg} transition-all duration-500 group relative`}>
                  
+                 {/* Network Type & Icon */}
+                 <div className="flex items-center gap-2 pr-3 border-r border-current opacity-20">
+                    <span className={healthStatus.color}>{netDisplay.icon}</span>
+                    <span className={`text-xs font-bold tracking-wide ${healthStatus.color}`}>{netDisplay.label}</span>
+                 </div>
+
                  {/* Signal Bars */}
                  <div className="flex items-end gap-0.5 h-3">
                     {[1, 2, 3, 4].map(bar => (
@@ -460,7 +508,7 @@ const App: React.FC = () => {
                  </div>
 
                  <div className="flex flex-col leading-none">
-                   <span className="text-[9px] text-secondary font-medium uppercase tracking-wider mb-0.5">Network Health</span>
+                   <span className="text-[9px] text-secondary font-medium uppercase tracking-wider mb-0.5">Signal</span>
                    <span className={`text-xs font-bold ${healthStatus.color}`}>{healthStatus.label}</span>
                  </div>
                  
@@ -470,15 +518,15 @@ const App: React.FC = () => {
                       <div className="space-y-1.5 text-xs">
                         <div className="flex justify-between items-center">
                           <span className="text-secondary">Ping</span>
-                          <span className={`font-mono ${healthMetrics.p! > 40 ? 'text-yellow-400' : 'text-primary'}`}>{healthMetrics.p} ms</span>
+                          <span className={`font-mono ${healthMetrics.p! > 40 ? 'text-yellow-600 dark:text-yellow-400' : 'text-primary'}`}>{healthMetrics.p} ms</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-secondary">Jitter</span>
-                          <span className={`font-mono ${healthMetrics.j! > 10 ? 'text-yellow-400' : 'text-primary'}`}>{healthMetrics.j} ms</span>
+                          <span className={`font-mono ${healthMetrics.j! > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-primary'}`}>{healthMetrics.j} ms</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-secondary">Loss</span>
-                          <span className={`font-mono ${healthMetrics.l! > 0 ? 'text-red-400' : 'text-primary'}`}>{healthMetrics.l?.toFixed(2)}%</span>
+                          <span className={`font-mono ${healthMetrics.l! > 0 ? 'text-red-600 dark:text-red-400' : 'text-primary'}`}>{healthMetrics.l?.toFixed(2)}%</span>
                         </div>
                       </div>
                    </div>
@@ -492,6 +540,16 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* New Map Button */}
+              <button
+                onClick={() => setShowMap(true)}
+                className="p-2 rounded-full hover:bg-glass text-secondary hover:text-primary transition-colors border border-transparent hover:border-glassBorder"
+                aria-label="Open Map"
+                title="Network Coverage Map"
+              >
+                <MapIcon className="w-5 h-5" />
+              </button>
+
               {/* Enhanced Theme Switcher */}
               <button 
                 onClick={toggleTheme}
@@ -825,14 +883,17 @@ const App: React.FC = () => {
                   history.map((result) => (
                     <div 
                       key={result.id}
-                      onClick={() => {
-                        setSelectedResultId(result.id);
-                        setShowResultModal(true);
-                      }}
-                      className="p-3 rounded-lg bg-glass border border-glassBorder hover:border-primary/20 transition-all cursor-pointer group flex items-center justify-between"
+                      className="p-3 rounded-lg bg-glass border border-glassBorder hover:border-primary/20 transition-all group flex items-center justify-between"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-md ${result.networkType === 'WiFi' ? 'bg-blue-500/10 text-blue-400' : result.networkType === '5G' ? 'bg-purple-500/10 text-purple-400' : 'bg-green-500/10 text-green-400'}`}>
+                      <div 
+                        onClick={() => {
+                          setSelectedResultId(result.id);
+                          setOpenWithAI(false);
+                          setShowResultModal(true);
+                        }}
+                        className="flex items-center gap-4 flex-1 cursor-pointer"
+                      >
+                        <div className={`p-2 rounded-md ${result.networkType === 'WiFi' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : result.networkType === '5G' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'bg-green-500/10 text-green-600 dark:text-green-400'}`}>
                           {result.networkType === 'WiFi' ? <Wifi className="w-4 h-4" /> : result.networkType === '5G' ? <Smartphone className="w-4 h-4" /> : <Cable className="w-4 h-4" />}
                         </div>
                         <div>
@@ -850,13 +911,35 @@ const App: React.FC = () => {
                             <div className="text-[10px] text-secondary">Ping</div>
                          </div>
                          <div className="hidden sm:block">
-                            <div className={`text-xs font-medium ${result.stabilityScore >= 90 ? 'text-green-400' : 'text-yellow-400'}`}>
+                            <div className={`text-xs font-medium ${result.stabilityScore >= 90 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                                {result.stabilityScore}/100
                             </div>
                             <div className="text-[10px] text-secondary">Stability</div>
                          </div>
-                         <div className="text-secondary group-hover:text-primary transition-colors">
-                           <ArrowDown className="w-4 h-4 -rotate-90" />
+                         
+                         <div className="flex items-center gap-2">
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setSelectedResultId(result.id);
+                               setOpenWithAI(true);
+                               setShowResultModal(true);
+                             }}
+                             className="p-2 rounded-full hover:bg-accent-purple/10 text-secondary hover:text-accent-purple transition-colors"
+                             title="Generate AI Report"
+                           >
+                             <Sparkles className="w-4 h-4" />
+                           </button>
+                           <button 
+                             onClick={() => {
+                               setSelectedResultId(result.id);
+                               setOpenWithAI(false);
+                               setShowResultModal(true);
+                             }}
+                             className="p-2 rounded-full hover:bg-glass text-secondary hover:text-primary transition-colors"
+                           >
+                             <ArrowDown className="w-4 h-4 -rotate-90" />
+                           </button>
                          </div>
                       </div>
                     </div>
@@ -873,9 +956,17 @@ const App: React.FC = () => {
       <InfoModal isOpen={showInfo} onClose={() => setShowInfo(false)} />
       <ResultDetailsModal 
         isOpen={showResultModal} 
-        onClose={() => setShowResultModal(false)} 
+        onClose={() => {
+          setShowResultModal(false);
+          setOpenWithAI(false);
+        }} 
         result={selectedTest} 
         onUpdateResult={handleUpdateResult}
+        startWithAI={openWithAI}
+      />
+      <CoverageMapModal 
+        isOpen={showMap} 
+        onClose={() => setShowMap(false)} 
       />
     </div>
   );

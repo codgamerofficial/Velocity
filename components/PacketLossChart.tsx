@@ -16,7 +16,7 @@ const PacketLossChart: React.FC<PacketLossChartProps> = ({ data, phase }) => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-black/80 backdrop-blur-md border border-white/10 rounded-lg p-3 shadow-xl min-w-[120px]">
+        <div className="glass-panel rounded-lg p-3 shadow-xl min-w-[120px] border border-glassBorder backdrop-blur-md bg-panel/95">
           <p className="text-[10px] font-mono text-secondary mb-1">
             {new Date(payload[0].payload.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
@@ -35,14 +35,14 @@ const PacketLossChart: React.FC<PacketLossChartProps> = ({ data, phase }) => {
   // Only show chart if we have data or are active
   if (data.length === 0 && phase === TestPhase.IDLE) {
     return (
-      <div className="h-36 w-full flex items-center justify-center bg-glass text-secondary text-xs font-mono">
+      <div className="h-36 w-full flex items-center justify-center bg-surface/30 text-secondary text-xs font-mono">
         Waiting for packet analysis...
       </div>
     );
   }
 
   return (
-    <div className="h-48 w-full relative overflow-hidden pb-2">
+    <div className="h-48 w-full relative overflow-hidden pb-2 bg-surface/30">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
@@ -51,11 +51,14 @@ const PacketLossChart: React.FC<PacketLossChartProps> = ({ data, phase }) => {
               <stop offset="95%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+          <CartesianGrid vertical={false} stroke="var(--border-glass)" strokeDasharray="4 4" />
           <XAxis dataKey="time" hide />
           {/* Packet loss is typically low, so we scale domain to exaggerate small values for visibility, max 5% */}
           <YAxis hide domain={[0, 5]} />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(239,68,68,0.3)', strokeWidth: 1, strokeDasharray: '4 4' }} />
+          <Tooltip 
+            content={<CustomTooltip />} 
+            cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.3 }} 
+          />
           <Area
             type="monotone"
             dataKey="loss"
@@ -68,7 +71,7 @@ const PacketLossChart: React.FC<PacketLossChartProps> = ({ data, phase }) => {
           <Brush 
             dataKey="time" 
             height={30} 
-            stroke="#334155" 
+            stroke="var(--text-secondary)"
             fill="var(--bg-panel)" 
             tickFormatter={(val) => new Date(val).toLocaleTimeString([], { minute: '2-digit', second: '2-digit' })}
             travellerWidth={14}
@@ -79,7 +82,7 @@ const PacketLossChart: React.FC<PacketLossChartProps> = ({ data, phase }) => {
       </ResponsiveContainer>
       
       {/* Scanline effect */}
-      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px]" />
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.05)_50%)] dark:bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px]" />
     </div>
   );
 };

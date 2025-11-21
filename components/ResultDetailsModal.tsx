@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Server, Globe, Activity, Zap, ArrowDown, ArrowUp, ShieldCheck, Smartphone, Wifi, Cable, MapPin, Router, Network, Share2, Check, Copy, Download, Sparkles, Database, FileJson, Scale, AlertTriangle, ThumbsUp, Info } from 'lucide-react';
 import { TestResult } from '../types';
 import AIAnalysisModal from './AIAnalysisModal';
@@ -9,11 +9,22 @@ interface ResultDetailsModalProps {
   onClose: () => void;
   result: TestResult | null;
   onUpdateResult?: (id: string, updates: Partial<TestResult>) => void;
+  startWithAI?: boolean;
 }
 
-const ResultDetailsModal: React.FC<ResultDetailsModalProps> = ({ isOpen, onClose, result, onUpdateResult }) => {
+const ResultDetailsModal: React.FC<ResultDetailsModalProps> = ({ isOpen, onClose, result, onUpdateResult, startWithAI = false }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [showAI, setShowAI] = useState(false);
+
+  // Auto-trigger AI modal if requested via prop
+  useEffect(() => {
+    if (isOpen && startWithAI) {
+      setShowAI(true);
+    }
+    if (!isOpen) {
+      setShowAI(false);
+    }
+  }, [isOpen, startWithAI]);
 
   if (!isOpen || !result) return null;
 

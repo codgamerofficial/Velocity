@@ -19,7 +19,7 @@ const LatencyChart: React.FC<LatencyChartProps> = ({ data }) => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-black/80 backdrop-blur-md border border-white/10 rounded-lg p-3 shadow-xl min-w-[120px]">
+        <div className="glass-panel rounded-lg p-3 shadow-xl min-w-[120px] border border-glassBorder backdrop-blur-md bg-panel/95">
           <p className="text-[10px] font-mono text-secondary mb-1">
             {new Date(payload[0].payload.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
@@ -50,7 +50,7 @@ const LatencyChart: React.FC<LatencyChartProps> = ({ data }) => {
         </div>
       </div>
 
-      <div className="h-72 w-full relative overflow-hidden rounded-b-xl pb-2">
+      <div className="h-72 w-full relative overflow-hidden rounded-b-xl pb-2 bg-surface/30">
         {!hasData ? (
            <div className="absolute inset-0 flex items-center justify-center text-secondary text-sm font-mono">
              Initializing Ping Test...
@@ -64,10 +64,13 @@ const LatencyChart: React.FC<LatencyChartProps> = ({ data }) => {
                   <stop offset="95%" stopColor={color} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+              <CartesianGrid vertical={false} stroke="var(--border-glass)" strokeDasharray="4 4" />
               <XAxis dataKey="time" hide />
               <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              <Tooltip 
+                content={<CustomTooltip />} 
+                cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.3 }} 
+              />
               <Area
                 type="monotone"
                 dataKey="ping"
@@ -93,13 +96,13 @@ const LatencyChart: React.FC<LatencyChartProps> = ({ data }) => {
         
         {/* Current Value Overlay */}
         {hasData && (
-          <div className="absolute top-2 left-4 font-mono text-xs bg-black/40 backdrop-blur-sm px-2 py-1 rounded border border-white/5 text-primary pointer-events-none">
+          <div className="absolute top-2 left-4 font-mono text-xs bg-panel/80 backdrop-blur-sm px-2 py-1 rounded border border-glassBorder text-primary pointer-events-none">
              Last: {data[data.length - 1].ping} ms
           </div>
         )}
 
         {/* Scanline effect */}
-        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px]" />
+        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.05)_50%)] dark:bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px]" />
       </div>
     </div>
   );
