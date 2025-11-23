@@ -1,0 +1,9 @@
+declare module 'framer-motion';
+declare module 'canvas-confetti';
+declare module 'react';
+declare module 'react-dom';
+declare module 'react-dom/client';
+declare module 'lucide-react';
+declare module 'recharts';
+declare module '@google/genai';
+declare module 'leaflet';
