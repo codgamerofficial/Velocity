@@ -1,13 +1,13 @@
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { 
-  Activity, 
-  Wifi, 
-  ArrowDown, 
-  ArrowUp, 
-  Globe, 
-  ShieldCheck, 
-  Zap, 
+import {
+  Activity,
+  Wifi,
+  ArrowDown,
+  ArrowUp,
+  Globe,
+  ShieldCheck,
+  Zap,
   Clock,
   Play,
   Settings2,
@@ -43,7 +43,7 @@ import CoverageMapModal from './components/CoverageMapModal';
 const getProviderLogoData = (name: string) => {
   const normalized = (name || '').toLowerCase();
   let data = { bg: '334155', color: 'cbd5e1', text: (name && name.length >= 2) ? name.substring(0, 2).toUpperCase() : 'UK' };
-  
+
   // Map common providers to their brand colors and short text
   if (normalized.includes('jio')) data = { bg: '0f52ba', color: 'fff', text: 'Jio' };
   else if (normalized.includes('airtel')) data = { bg: 'ff0000', color: 'fff', text: 'Airtel' };
@@ -74,8 +74,8 @@ const getProviderLogoData = (name: string) => {
   else if (normalized.includes('sky')) data = { bg: 'ea0a8e', color: 'fff', text: 'Sky' };
   else if (normalized.includes('telekom') || normalized.includes('deutsche')) data = { bg: 'e20074', color: 'fff', text: 'Tele' };
 
-  return { 
-    ...data, 
+  return {
+    ...data,
     url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.text)}&background=${data.bg}&color=${data.color}&size=64&bold=true&font-size=0.45&rounded=true`
   };
 };
@@ -84,16 +84,16 @@ const getProviderLogoData = (name: string) => {
 // Updated with Theme-Aware Classes (Dark/Light support)
 const getNetworkHealth = (ping: number | null, jitter: number | null, loss: number | null) => {
   if (ping === null || jitter === null) {
-    return { 
-      label: 'System Ready', 
-      color: 'text-secondary', 
+    return {
+      label: 'System Ready',
+      color: 'text-secondary',
       barColor: 'bg-secondary',
       level: 0,
-      border: 'border-black/5 dark:border-white/5', 
-      bg: 'bg-black/5 dark:bg-white/5' 
+      border: 'border-black/5 dark:border-white/5',
+      bg: 'bg-black/5 dark:bg-white/5'
     };
   }
-  
+
   const p = ping || 0;
   const j = jitter || 0;
   const l = loss || 0;
@@ -101,45 +101,45 @@ const getNetworkHealth = (ping: number | null, jitter: number | null, loss: numb
   // Grading Logic
   // Poor: High packet loss (>2%) OR very high latency (>150ms) OR extreme jitter (>30ms)
   if (l > 2 || p > 150 || j > 30) {
-    return { 
-      label: 'Poor Quality', 
-      color: 'text-red-600 dark:text-red-400', 
+    return {
+      label: 'Poor Quality',
+      color: 'text-red-600 dark:text-red-400',
       barColor: 'bg-red-500 dark:bg-red-400',
       level: 1,
-      border: 'border-red-500/20', 
-      bg: 'bg-red-500/10' 
+      border: 'border-red-500/20',
+      bg: 'bg-red-500/10'
     };
   }
   // Fair: Slight packet loss OR high latency (>80ms) OR moderate jitter (>15ms)
   if (l > 0.5 || p > 80 || j > 15) {
-    return { 
-      label: 'Fair Quality', 
-      color: 'text-yellow-600 dark:text-yellow-400', 
+    return {
+      label: 'Fair Quality',
+      color: 'text-yellow-600 dark:text-yellow-400',
       barColor: 'bg-yellow-500 dark:bg-yellow-400',
       level: 2,
-      border: 'border-yellow-500/20', 
-      bg: 'bg-yellow-500/10' 
+      border: 'border-yellow-500/20',
+      bg: 'bg-yellow-500/10'
     };
   }
   // Good: Reasonable latency (>40ms) or slight jitter (>5ms)
   if (p > 40 || j > 5) {
-    return { 
-      label: 'Good Quality', 
-      color: 'text-blue-600 dark:text-blue-400', 
+    return {
+      label: 'Good Quality',
+      color: 'text-blue-600 dark:text-blue-400',
       barColor: 'bg-blue-500 dark:bg-blue-400',
       level: 3,
-      border: 'border-blue-500/20', 
-      bg: 'bg-blue-500/10' 
+      border: 'border-blue-500/20',
+      bg: 'bg-blue-500/10'
     };
   }
   // Excellent: Low latency, minimal jitter, no loss
-  return { 
-    label: 'Excellent', 
-    color: 'text-green-600 dark:text-green-400', 
+  return {
+    label: 'Excellent',
+    color: 'text-green-600 dark:text-green-400',
     barColor: 'bg-green-500 dark:bg-green-400',
     level: 4,
-    border: 'border-green-500/20', 
-    bg: 'bg-green-500/10' 
+    border: 'border-green-500/20',
+    bg: 'bg-green-500/10'
   };
 };
 
@@ -167,7 +167,7 @@ const App: React.FC = () => {
   const [showResultModal, setShowResultModal] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [openWithAI, setOpenWithAI] = useState(false);
-  
+
   // Initialize throttling limit from local storage
   const [throttlingLimit, setThrottlingLimit] = useState<number | null>(() => {
     try {
@@ -178,9 +178,9 @@ const App: React.FC = () => {
       return null;
     }
   });
-  
+
   const [networkType, setNetworkType] = useState<'WiFi' | 'Ethernet' | '5G'>('WiFi');
-  
+
   // Initialize server selection from local storage
   const [selectedServer, setSelectedServer] = useState(() => {
     try {
@@ -199,10 +199,10 @@ const App: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false);
 
   const engineRef = useRef<NetworkSimulationEngine | null>(null);
-  
+
   // Keep track of latest configuration to avoid stale closures in callbacks
   const configRef = useRef({ networkType, selectedServer, providerName, clientInfo, isDataSaver });
-  
+
   useEffect(() => {
     configRef.current = { networkType, selectedServer, providerName, clientInfo, isDataSaver };
   }, [networkType, selectedServer, providerName, clientInfo, isDataSaver]);
@@ -238,9 +238,9 @@ const App: React.FC = () => {
       if (est.type === 'cellular') browserDetectedType = '5G';
       else if (est.type === 'wifi') browserDetectedType = 'WiFi';
       else if (est.type === 'ethernet') browserDetectedType = 'Ethernet';
-      
+
       if (browserDetectedType) {
-         setNetworkType(browserDetectedType);
+        setNetworkType(browserDetectedType);
       }
     }
 
@@ -248,7 +248,7 @@ const App: React.FC = () => {
     fetchClientInfo().then(info => {
       if (info) {
         setClientInfo(info);
-        
+
         // Auto-detect Provider Name
         if (info.isp) {
           setProviderName(info.isp);
@@ -262,8 +262,8 @@ const App: React.FC = () => {
 
           // Explicit Fixed Line keywords (Fiber/Broadband/Cable/DSL)
           const fixedKeywords = [
-            'fiber', 'fibernet', 'broadband', 'cable', 'dsl', 'ftth', 
-            'act', 'hathway', 'excitel', 'gtpl', 'you broadband', 
+            'fiber', 'fibernet', 'broadband', 'cable', 'dsl', 'ftth',
+            'act', 'hathway', 'excitel', 'gtpl', 'you broadband',
             'tata play', 'xfinity', 'comcast', 'spectrum', 'charter',
             'alliance', 'spectranet', 'tikona', 'railwire', 'bsnl broadband',
             'verizon fios', 'at&t internet', 'centurylink', 'frontier'
@@ -323,7 +323,7 @@ const App: React.FC = () => {
 
   const handleComplete = useCallback((finalState: Partial<EngineState>) => {
     const { networkType: currentNetwork, selectedServer: currentServer, providerName: currentProvider, clientInfo: currentClient, isDataSaver: currentDataSaver } = configRef.current;
-    
+
     // Heuristic for Wi-Fi 6E: fast speeds on WiFi
     const isWifi6E = currentNetwork === 'WiFi' && (finalState.downloadPeak || 0) > 800;
 
@@ -391,9 +391,9 @@ const App: React.FC = () => {
   // Updated to use theme-aware text colors
   const getNetworkDisplay = () => {
     if (networkType === 'Ethernet') {
-      return { 
-        icon: <Cable className="w-3.5 h-3.5" />, 
-        label: 'ETHERNET', 
+      return {
+        icon: <Cable className="w-3.5 h-3.5" />,
+        label: 'ETHERNET',
         badge: null,
         style: 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400 shadow-green-500/20'
       };
@@ -401,21 +401,21 @@ const App: React.FC = () => {
     if (networkType === 'WiFi') {
       // Heuristic check for "Wi-Fi 6E" visual based on recent history or current high speed
       const hasWifi6E = history.some(h => h.networkType === 'WiFi' && h.isWifi6E) || (engineState.downloadPeak > 800);
-      
-      return { 
-        icon: <Wifi className="w-3.5 h-3.5" />, 
+
+      return {
+        icon: <Wifi className="w-3.5 h-3.5" />,
         label: 'WI-FI',
         badge: hasWifi6E ? '6E' : null,
-        style: hasWifi6E 
-          ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400 shadow-cyan-500/20' 
+        style: hasWifi6E
+          ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400 shadow-cyan-500/20'
           : 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400 shadow-blue-500/20'
       };
     }
     // 5G / Cellular
     const is5G = providerName.toLowerCase().includes('5g') || (clientInfo?.isp || '').toLowerCase().includes('5g');
-    return { 
-      icon: <Signal className="w-3.5 h-3.5" />, 
-      label: is5G ? '5G NR' : '4G LTE', 
+    return {
+      icon: <Signal className="w-3.5 h-3.5" />,
+      label: is5G ? '5G NR' : '4G LTE',
       badge: null,
       style: 'bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400 shadow-purple-500/20'
     };
@@ -447,10 +447,10 @@ const App: React.FC = () => {
   // Calculate dynamic health status
   const healthMetrics = useMemo(() => {
     if (engineState.phase !== TestPhase.IDLE) {
-       return { p: engineState.ping, j: engineState.jitter, l: engineState.packetLoss };
+      return { p: engineState.ping, j: engineState.jitter, l: engineState.packetLoss };
     }
     if (history.length > 0) {
-       return { p: history[0].ping, j: history[0].jitter, l: history[0].packetLoss };
+      return { p: history[0].ping, j: history[0].jitter, l: history[0].packetLoss };
     }
     return { p: null, j: null, l: null };
   }, [engineState.phase, engineState.ping, engineState.jitter, engineState.packetLoss, history]);
@@ -459,7 +459,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface text-primary font-sans selection:bg-accent-cyan selection:text-black transition-colors duration-300">
-      
+
       {/* Header */}
       <header className="fixed top-0 w-full z-50 border-b border-glassBorder bg-surface/80 backdrop-blur-md transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -467,70 +467,69 @@ const App: React.FC = () => {
             <Activity className="text-accent-cyan w-6 h-6" />
             <h1 className="font-bold text-xl tracking-tight">Velocity <span className="hidden sm:inline text-xs font-normal text-secondary px-2 py-0.5 rounded border border-glassBorder bg-glass">PRO</span></h1>
           </div>
-          
+
           <div className="flex items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-4 text-xs font-mono text-secondary">
-               {/* Data Saver Toggle */}
-               <button 
-                 onClick={() => !isActive && setIsDataSaver(!isDataSaver)}
-                 disabled={isActive}
-                 className={`hidden sm:flex items-center gap-1.5 px-2 py-1 rounded border transition-all ${
-                   isDataSaver 
-                     ? 'bg-accent-green/10 border-accent-green/30 text-accent-green' 
-                     : 'border-transparent hover:bg-glass text-secondary'
-                 } disabled:opacity-50`}
-                 title="Run shorter tests to save data"
-               >
-                 <Database className="w-3 h-3" />
-                 <span>Data Saver</span>
-               </button>
+              {/* Data Saver Toggle */}
+              <button
+                onClick={() => !isActive && setIsDataSaver(!isDataSaver)}
+                disabled={isActive}
+                className={`hidden sm:flex items-center gap-1.5 px-2 py-1 rounded border transition-all ${isDataSaver
+                    ? 'bg-accent-green/10 border-accent-green/30 text-accent-green'
+                    : 'border-transparent hover:bg-glass text-secondary'
+                  } disabled:opacity-50`}
+                title="Run shorter tests to save data"
+              >
+                <Database className="w-3 h-3" />
+                <span>Data Saver</span>
+              </button>
 
               <div className="h-4 w-px bg-glassBorder hidden sm:block"></div>
-              
+
               {/* Network Status & Signal Strength Indicator */}
               <div className={`hidden md:flex items-center gap-3 px-4 py-1.5 rounded-full border ${healthStatus.border} ${healthStatus.bg} transition-all duration-500 group relative`}>
-                 
-                 {/* Network Type & Icon */}
-                 <div className="flex items-center gap-2 pr-3 border-r border-current opacity-20">
-                    <span className={healthStatus.color}>{netDisplay.icon}</span>
-                    <span className={`text-xs font-bold tracking-wide ${healthStatus.color}`}>{netDisplay.label}</span>
-                 </div>
 
-                 {/* Signal Bars */}
-                 <div className="flex items-end gap-0.5 h-3">
-                    {[1, 2, 3, 4].map(bar => (
-                      <div 
-                        key={bar}
-                        className={`w-1 rounded-[1px] transition-all duration-500 ${bar <= healthStatus.level ? healthStatus.barColor : 'bg-current opacity-20'}`}
-                        style={{ height: `${bar * 25}%` }}
-                      />
-                    ))}
-                 </div>
+                {/* Network Type & Icon */}
+                <div className="flex items-center gap-2 pr-3 border-r border-current opacity-20">
+                  <span className={healthStatus.color}>{netDisplay.icon}</span>
+                  <span className={`text-xs font-bold tracking-wide ${healthStatus.color}`}>{netDisplay.label}</span>
+                </div>
 
-                 <div className="flex flex-col leading-none">
-                   <span className="text-[9px] text-secondary font-medium uppercase tracking-wider mb-0.5">Signal</span>
-                   <span className={`text-xs font-bold ${healthStatus.color}`}>{healthStatus.label}</span>
-                 </div>
-                 
-                 {/* Detailed Tooltip on Hover */}
-                 {healthStatus.level > 0 && (
-                   <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-panel/95 backdrop-blur-xl border border-glassBorder shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-y-1 group-hover:translate-y-0 z-50">
-                      <div className="space-y-1.5 text-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="text-secondary">Ping</span>
-                          <span className={`font-mono ${healthMetrics.p! > 40 ? 'text-yellow-600 dark:text-yellow-400' : 'text-primary'}`}>{healthMetrics.p} ms</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-secondary">Jitter</span>
-                          <span className={`font-mono ${healthMetrics.j! > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-primary'}`}>{healthMetrics.j} ms</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-secondary">Loss</span>
-                          <span className={`font-mono ${healthMetrics.l! > 0 ? 'text-red-600 dark:text-red-400' : 'text-primary'}`}>{healthMetrics.l?.toFixed(2)}%</span>
-                        </div>
+                {/* Signal Bars */}
+                <div className="flex items-end gap-0.5 h-3">
+                  {[1, 2, 3, 4].map(bar => (
+                    <div
+                      key={bar}
+                      className={`w-1 rounded-[1px] transition-all duration-500 ${bar <= healthStatus.level ? healthStatus.barColor : 'bg-current opacity-20'}`}
+                      style={{ height: `${bar * 25}%` }}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex flex-col leading-none">
+                  <span className="text-[9px] text-secondary font-medium uppercase tracking-wider mb-0.5">Signal</span>
+                  <span className={`text-xs font-bold ${healthStatus.color}`}>{healthStatus.label}</span>
+                </div>
+
+                {/* Detailed Tooltip on Hover */}
+                {healthStatus.level > 0 && (
+                  <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-panel/95 backdrop-blur-xl border border-glassBorder shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-y-1 group-hover:translate-y-0 z-50">
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-secondary">Ping</span>
+                        <span className={`font-mono ${healthMetrics.p! > 40 ? 'text-yellow-600 dark:text-yellow-400' : 'text-primary'}`}>{healthMetrics.p} ms</span>
                       </div>
-                   </div>
-                 )}
+                      <div className="flex justify-between items-center">
+                        <span className="text-secondary">Jitter</span>
+                        <span className={`font-mono ${healthMetrics.j! > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-primary'}`}>{healthMetrics.j} ms</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-secondary">Loss</span>
+                        <span className={`font-mono ${healthMetrics.l! > 0 ? 'text-red-600 dark:text-red-400' : 'text-primary'}`}>{healthMetrics.l?.toFixed(2)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -551,7 +550,7 @@ const App: React.FC = () => {
               </button>
 
               {/* Enhanced Theme Switcher */}
-              <button 
+              <button
                 onClick={toggleTheme}
                 className="relative p-2 rounded-full hover:bg-glass text-secondary hover:text-primary transition-colors border border-transparent hover:border-glassBorder overflow-hidden"
                 aria-label="Toggle Theme"
@@ -563,7 +562,7 @@ const App: React.FC = () => {
                 </div>
               </button>
 
-              <button 
+              <button
                 onClick={() => setShowInfo(true)}
                 className="p-2 rounded-full hover:bg-glass text-secondary hover:text-primary transition-colors border border-transparent hover:border-glassBorder"
                 aria-label="Information"
@@ -577,73 +576,100 @@ const App: React.FC = () => {
 
       <main className="pt-24 pb-12 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Left Column: Controls & Main Display */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            
+
             {/* Main Hero Card - Updated to prevent clipping of tooltips */}
             <div className="glass-panel rounded-2xl border border-glassBorder relative group">
               {/* Decorative Gradient Blob in clipped container */}
               <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent-cyan/5 rounded-full blur-[100px] group-hover:bg-accent-cyan/10 transition-all duration-1000" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent-cyan/5 rounded-full blur-[100px] group-hover:bg-accent-cyan/10 transition-all duration-1000" />
               </div>
-              
+
               {/* Content Container - Visible Overflow for Tooltips */}
               <div className="p-8 flex flex-col items-center justify-center relative z-10 min-h-[400px]">
-                <Speedometer 
-                  speed={engineState.currentSpeed} 
-                  phase={engineState.phase} 
+
+                {/* MOVED BUTTON HERE */}
+                <div className="mb-8 flex flex-col items-center w-full relative z-50">
+                  {isActive ? (
+                    <button
+                      onClick={stopTest}
+                      className="group relative px-8 py-3 rounded-full bg-red-500/10 border border-red-500/50 text-red-500 font-bold tracking-wide hover:bg-red-500/20 transition-all active:scale-95 overflow-hidden"
+                    >
+                      <span className="relative z-10 flex items-center gap-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-sm animate-spin" />
+                        STOP TEST
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={startTest}
+                      className="group relative px-10 py-4 rounded-full bg-primary text-surface font-bold tracking-widest hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                      <span className="relative z-10 flex items-center gap-2">
+                        <Play className="w-4 h-4 fill-current" />
+                        START
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                <Speedometer
+                  speed={engineState.currentSpeed}
+                  phase={engineState.phase}
                   max={speedometerMax}
                   limit={throttlingLimit}
                 />
-                
+
                 <div className="mt-8 flex flex-col items-center w-full">
-                  
+
                   {/* Settings Controls */}
                   <div className={`relative z-20 mb-8 flex flex-col gap-4 items-center transition-opacity duration-500 ${isActive ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                    
+
                     {/* Auto-Detected Provider Info with Hover Details */}
                     <div className="group relative flex flex-col items-center gap-2 mb-2 z-30">
-                      
+
                       {/* Network Type Badge */}
                       <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full border backdrop-blur-md transition-all duration-300 shadow-lg cursor-help group-hover:scale-105 ${netDisplay.style}`}>
-                         {netDisplay.icon}
-                         <div className="flex items-center gap-1">
-                           <span className="text-xs font-bold tracking-wider uppercase">{netDisplay.label}</span>
-                           {netDisplay.badge && (
-                             <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-[9px] font-extrabold tracking-tight shadow-sm border border-white/10">
-                               {netDisplay.badge}
-                             </span>
-                           )}
-                         </div>
-                         {clientInfo && <Info className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />}
+                        {netDisplay.icon}
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold tracking-wider uppercase">{netDisplay.label}</span>
+                          {netDisplay.badge && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-[9px] font-extrabold tracking-tight shadow-sm border border-white/10">
+                              {netDisplay.badge}
+                            </span>
+                          )}
+                        </div>
+                        {clientInfo && <Info className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />}
                       </div>
 
                       {/* Provider Name & Logo Display */}
                       <div className="flex items-center justify-center gap-2 mt-1">
-                         {/* Branded Logo */}
-                         <img 
-                           src={logoData.url} 
-                           alt={providerName} 
-                           className="w-6 h-6 rounded-full shadow-sm border border-glassBorder bg-white/10"
-                           onError={(e) => {
-                             (e.target as HTMLImageElement).style.display = 'none';
-                           }}
-                         />
-                         
-                         <div className="flex flex-col items-start leading-none">
-                            <div className="flex items-center gap-1.5">
-                               <span className="text-xs font-medium text-primary tracking-tight">
-                                 {providerName}
-                               </span>
-                               <div className={`w-1.5 h-1.5 rounded-full ${clientInfo ? 'bg-accent-green shadow-[0_0_5px_rgba(16,185,129,0.6)]' : 'bg-yellow-500 animate-pulse'}`}></div>
-                            </div>
-                            {clientInfo && (
-                              <span className="text-[10px] text-secondary mt-1">
-                                {clientInfo.city}, {clientInfo.country}
-                              </span>
-                            )}
-                         </div>
+                        {/* Branded Logo */}
+                        <img
+                          src={logoData.url}
+                          alt={providerName}
+                          className="w-6 h-6 rounded-full shadow-sm border border-glassBorder bg-white/10"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+
+                        <div className="flex flex-col items-start leading-none">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium text-primary tracking-tight">
+                              {providerName}
+                            </span>
+                            <div className={`w-1.5 h-1.5 rounded-full ${clientInfo ? 'bg-accent-green shadow-[0_0_5px_rgba(16,185,129,0.6)]' : 'bg-yellow-500 animate-pulse'}`}></div>
+                          </div>
+                          {clientInfo && (
+                            <span className="text-[10px] text-secondary mt-1">
+                              {clientInfo.city}, {clientInfo.country}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Enhanced Hover Tooltip - Now visible due to removed overflow-hidden on parent */}
@@ -657,19 +683,19 @@ const App: React.FC = () => {
                             </div>
                             {clientInfo.flagUrl && <img src={clientInfo.flagUrl} alt="flag" className="w-5 h-auto object-cover rounded-[2px]" />}
                           </div>
-                          
+
                           {/* Tooltip Content */}
                           <div className="p-4 space-y-3 text-xs">
                             <div className="grid grid-cols-[min-content_1fr] gap-x-4 gap-y-2">
-                              
+
                               <span className="text-secondary font-medium whitespace-nowrap">Provider</span>
                               <span className="text-primary font-medium text-right truncate">{clientInfo.isp}</span>
-                              
+
                               <span className="text-secondary font-medium whitespace-nowrap">Location</span>
                               <span className="text-primary font-medium text-right truncate">{clientInfo.city}, {clientInfo.region}</span>
-                              
+
                               <div className="col-span-2 h-px bg-white/5 my-1"></div>
-                              
+
                               <span className="text-secondary font-medium whitespace-nowrap">IP Address</span>
                               <div className="flex items-center justify-end gap-2 overflow-hidden">
                                 <span className="text-primary font-mono text-right truncate">{clientInfo.ip}</span>
@@ -677,14 +703,14 @@ const App: React.FC = () => {
                                   {isCopied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3 text-secondary" />}
                                 </button>
                               </div>
-                              
+
                               {clientInfo.asn && (
                                 <>
                                   <span className="text-secondary font-medium whitespace-nowrap">ASN</span>
                                   <span className="text-primary font-mono text-right">{clientInfo.asn}</span>
                                 </>
                               )}
-                              
+
                               {clientInfo.org && clientInfo.org !== clientInfo.isp && (
                                 <>
                                   <span className="text-secondary font-medium whitespace-nowrap">Organization</span>
@@ -708,7 +734,7 @@ const App: React.FC = () => {
                       <label className="text-xs font-medium text-secondary uppercase tracking-wider w-20 text-right flex items-center justify-end gap-2">
                         <Globe className="w-3 h-3" /> Server
                       </label>
-                      <select 
+                      <select
                         value={selectedServer.id}
                         onChange={(e) => {
                           const s = SERVER_LOCATIONS.find(loc => loc.id === e.target.value);
@@ -729,7 +755,7 @@ const App: React.FC = () => {
                       <label className="text-xs font-medium text-secondary uppercase tracking-wider w-20 text-right flex items-center justify-end gap-2">
                         <Settings2 className="w-3 h-3" /> Limit
                       </label>
-                      <select 
+                      <select
                         value={throttlingLimit === null ? 'native' : THROTTLING_PRESETS.find(p => p.limit === throttlingLimit)?.id || 'native'}
                         onChange={(e) => {
                           const preset = THROTTLING_PRESETS.find(p => p.id === e.target.value);
@@ -745,92 +771,68 @@ const App: React.FC = () => {
                       </select>
                     </div>
                   </div>
-
-                  {/* Primary Action Button */}
-                  {isActive ? (
-                    <button 
-                      onClick={stopTest}
-                      className="group relative px-8 py-3 rounded-full bg-red-500/10 border border-red-500/50 text-red-500 font-bold tracking-wide hover:bg-red-500/20 transition-all active:scale-95 overflow-hidden"
-                    >
-                      <span className="relative z-10 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-red-500 rounded-sm animate-spin" />
-                        STOP TEST
-                      </span>
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={startTest}
-                      className="group relative px-10 py-4 rounded-full bg-primary text-surface font-bold tracking-widest hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                      <span className="relative z-10 flex items-center gap-2">
-                        <Play className="w-4 h-4 fill-current" />
-                        START
-                      </span>
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
 
             {/* Live Stat Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-               <StatCard 
-                 label="Ping" 
-                 value={engineState.ping} 
-                 unit="ms" 
-                 icon={<Zap className="w-4 h-4" />} 
-                 color="text-accent-yellow"
-               />
-               <StatCard 
-                 label="Jitter" 
-                 value={engineState.jitter} 
-                 unit="ms" 
-                 icon={<Activity className="w-4 h-4" />} 
-               />
-               {/* Stability Score Card - Featured */}
-               <div className="md:col-span-1 md:row-span-2 flex">
-                 <div className="w-full glass-panel p-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:bg-glass border border-glassBorder relative overflow-hidden group">
-                   <div className={`absolute inset-0 opacity-10 ${getStabilityColor(engineState.stabilityScore)} bg-current blur-xl group-hover:opacity-20 transition-opacity`}></div>
-                   <div className="relative z-10 flex flex-col items-center">
-                     <div className="flex items-center gap-2 mb-2">
-                       <Scale className="w-4 h-4 text-secondary" />
-                       <span className="text-xs font-mono uppercase tracking-wider text-secondary">Stability</span>
-                     </div>
-                     <div className={`text-5xl font-bold tabular-nums ${getStabilityColor(engineState.stabilityScore)} drop-shadow-sm`}>
-                       {engineState.stabilityScore}
-                     </div>
-                     <div className="text-[10px] text-secondary font-medium uppercase tracking-wide mt-1">
-                       {engineState.stabilityScore >= 90 ? 'Excellent' : engineState.stabilityScore >= 70 ? 'Good' : 'Unstable'}
-                     </div>
-                   </div>
-                 </div>
-               </div>
-               <StatCard 
-                 label="Download" 
-                 value={engineState.downloadPeak > 0 ? engineState.downloadPeak.toFixed(1) : null} 
-                 unit="Mbps" 
-                 icon={<ArrowDown className="w-4 h-4" />} 
-                 color="text-accent-cyan"
-               />
-               <StatCard 
-                 label="Upload" 
-                 value={engineState.uploadPeak > 0 ? engineState.uploadPeak.toFixed(1) : null} 
-                 unit="Mbps" 
-                 icon={<ArrowUp className="w-4 h-4" />} 
-                 color="text-accent-purple"
-               />
+              <StatCard
+                label="Ping"
+                value={engineState.ping}
+                unit="ms"
+                icon={<Zap className="w-4 h-4" />}
+                color="text-accent-yellow"
+              />
+              <StatCard
+                label="Jitter"
+                value={engineState.jitter}
+                unit="ms"
+                icon={<Activity className="w-4 h-4" />}
+              />
+              {/* Stability Score Card - Featured */}
+              <div className="md:col-span-1 md:row-span-2 flex">
+                <div className="w-full glass-panel p-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:bg-glass border border-glassBorder relative overflow-hidden group">
+                  <div className={`absolute inset-0 opacity-10 ${getStabilityColor(engineState.stabilityScore)} bg-current blur-xl group-hover:opacity-20 transition-opacity`}></div>
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Scale className="w-4 h-4 text-secondary" />
+                      <span className="text-xs font-mono uppercase tracking-wider text-secondary">Stability</span>
+                    </div>
+                    <div className={`text-5xl font-bold tabular-nums ${getStabilityColor(engineState.stabilityScore)} drop-shadow-sm`}>
+                      {engineState.stabilityScore}
+                    </div>
+                    <div className="text-[10px] text-secondary font-medium uppercase tracking-wide mt-1">
+                      {engineState.stabilityScore >= 90 ? 'Excellent' : engineState.stabilityScore >= 70 ? 'Good' : 'Unstable'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <StatCard
+                label="Download"
+                value={engineState.downloadPeak > 0 ? engineState.downloadPeak.toFixed(1) : null}
+                unit="Mbps"
+                icon={<ArrowDown className="w-4 h-4" />}
+                color="text-accent-cyan"
+              />
+              <StatCard
+                label="Upload"
+                value={engineState.uploadPeak > 0 ? engineState.uploadPeak.toFixed(1) : null}
+                unit="Mbps"
+                icon={<ArrowUp className="w-4 h-4" />}
+                color="text-accent-purple"
+              />
             </div>
 
           </div>
 
           {/* Right Column: Analytics */}
           <div className="lg:col-span-7 space-y-6">
-            
+
             {/* Throughput Chart */}
             <div className="glass-panel rounded-xl border border-glassBorder overflow-hidden">
-              <LiveChart 
-                downloadData={engineState.downloadGraphData} 
+              <LiveChart
+                downloadData={engineState.downloadGraphData}
                 uploadData={engineState.uploadGraphData}
                 phase={engineState.phase}
               />
@@ -839,17 +841,17 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Latency Chart */}
               <div className="glass-panel rounded-xl border border-glassBorder overflow-hidden">
-                 <LatencyChart data={engineState.pingGraphData} />
+                <LatencyChart data={engineState.pingGraphData} />
               </div>
 
               {/* Packet Loss Chart */}
               <div className="glass-panel rounded-xl border border-glassBorder overflow-hidden">
-                 <div className="px-6 py-2 flex items-center justify-between text-xs font-mono border-b border-glassBorder/50">
+                <div className="px-6 py-2 flex items-center justify-between text-xs font-mono border-b border-glassBorder/50">
                   <div className="flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-accent-red" />
                     <span className="text-secondary">PACKET LOSS</span>
                   </div>
-                   <div className="text-accent-red/80 text-[10px] uppercase">
+                  <div className="text-accent-red/80 text-[10px] uppercase">
                     Stability
                   </div>
                 </div>
@@ -864,7 +866,7 @@ const App: React.FC = () => {
                   <Clock className="w-4 h-4" /> Recent Tests
                 </h3>
                 {history.length > 0 && (
-                  <button 
+                  <button
                     onClick={handleExportAllHistory}
                     className="flex items-center gap-1.5 text-xs font-medium text-accent-cyan hover:text-accent-cyan/80 transition-colors"
                   >
@@ -873,7 +875,7 @@ const App: React.FC = () => {
                   </button>
                 )}
               </div>
-              
+
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                 {history.length === 0 ? (
                   <div className="text-center py-8 text-secondary text-sm">
@@ -881,11 +883,11 @@ const App: React.FC = () => {
                   </div>
                 ) : (
                   history.map((result) => (
-                    <div 
+                    <div
                       key={result.id}
                       className="p-3 rounded-lg bg-glass border border-glassBorder hover:border-primary/20 transition-all group flex items-center justify-between"
                     >
-                      <div 
+                      <div
                         onClick={() => {
                           setSelectedResultId(result.id);
                           setOpenWithAI(false);
@@ -904,43 +906,43 @@ const App: React.FC = () => {
                           <div className="text-[10px] text-secondary">{new Date(result.timestamp).toLocaleTimeString()} • {result.serverLocation.split('(')[0]}</div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-6 text-right">
-                         <div className="hidden sm:block">
-                            <div className="text-xs font-medium text-primary">{result.ping} <span className="text-[10px] text-secondary">ms</span></div>
-                            <div className="text-[10px] text-secondary">Ping</div>
-                         </div>
-                         <div className="hidden sm:block">
-                            <div className={`text-xs font-medium ${result.stabilityScore >= 90 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
-                               {result.stabilityScore}/100
-                            </div>
-                            <div className="text-[10px] text-secondary">Stability</div>
-                         </div>
-                         
-                         <div className="flex items-center gap-2">
-                           <button
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               setSelectedResultId(result.id);
-                               setOpenWithAI(true);
-                               setShowResultModal(true);
-                             }}
-                             className="p-2 rounded-full hover:bg-accent-purple/10 text-secondary hover:text-accent-purple transition-colors"
-                             title="Generate AI Report"
-                           >
-                             <Sparkles className="w-4 h-4" />
-                           </button>
-                           <button 
-                             onClick={() => {
-                               setSelectedResultId(result.id);
-                               setOpenWithAI(false);
-                               setShowResultModal(true);
-                             }}
-                             className="p-2 rounded-full hover:bg-glass text-secondary hover:text-primary transition-colors"
-                           >
-                             <ArrowDown className="w-4 h-4 -rotate-90" />
-                           </button>
-                         </div>
+                        <div className="hidden sm:block">
+                          <div className="text-xs font-medium text-primary">{result.ping} <span className="text-[10px] text-secondary">ms</span></div>
+                          <div className="text-[10px] text-secondary">Ping</div>
+                        </div>
+                        <div className="hidden sm:block">
+                          <div className={`text-xs font-medium ${result.stabilityScore >= 90 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                            {result.stabilityScore}/100
+                          </div>
+                          <div className="text-[10px] text-secondary">Stability</div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedResultId(result.id);
+                              setOpenWithAI(true);
+                              setShowResultModal(true);
+                            }}
+                            className="p-2 rounded-full hover:bg-accent-purple/10 text-secondary hover:text-accent-purple transition-colors"
+                            title="Generate AI Report"
+                          >
+                            <Sparkles className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedResultId(result.id);
+                              setOpenWithAI(false);
+                              setShowResultModal(true);
+                            }}
+                            className="p-2 rounded-full hover:bg-glass text-secondary hover:text-primary transition-colors"
+                          >
+                            <ArrowDown className="w-4 h-4 -rotate-90" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -954,19 +956,19 @@ const App: React.FC = () => {
 
       {/* Modals */}
       <InfoModal isOpen={showInfo} onClose={() => setShowInfo(false)} />
-      <ResultDetailsModal 
-        isOpen={showResultModal} 
+      <ResultDetailsModal
+        isOpen={showResultModal}
         onClose={() => {
           setShowResultModal(false);
           setOpenWithAI(false);
-        }} 
-        result={selectedTest} 
+        }}
+        result={selectedTest}
         onUpdateResult={handleUpdateResult}
         startWithAI={openWithAI}
       />
-      <CoverageMapModal 
-        isOpen={showMap} 
-        onClose={() => setShowMap(false)} 
+      <CoverageMapModal
+        isOpen={showMap}
+        onClose={() => setShowMap(false)}
       />
     </div>
   );
