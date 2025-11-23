@@ -20,6 +20,7 @@ export default {
                 panel: '#1e293b', // slate-800
             },
             fontFamily: {
+                display: ['Space Grotesk', 'sans-serif'],
                 sans: ['Inter', 'sans-serif'],
                 mono: ['JetBrains Mono', 'monospace'],
             },

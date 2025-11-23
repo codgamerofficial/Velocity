@@ -2,10 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
 
 interface AnimatedCounterProps {
-import React, { useEffect, useRef } from 'react';
-import { motion, useSpring, useTransform } from 'framer-motion';
-
-interface AnimatedCounterProps {
     value: number | null;
     decimals?: number;
     className?: string;
