@@ -461,7 +461,8 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-surface text-primary font-sans selection:bg-accent-cyan selection:text-black transition-colors duration-300">
 
       {/* Header */}
-      <header className="fixed top-0 w-full z-50 border-b border-glassBorder bg-surface/80 backdrop-blur-md transition-colors duration-300">
+      {/* Header */}
+      <header className="fixed top-0 w-full z-[100] border-b border-glassBorder bg-surface/80 backdrop-blur-xl transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="text-accent-cyan w-6 h-6" />
@@ -475,8 +476,8 @@ const App: React.FC = () => {
                 onClick={() => !isActive && setIsDataSaver(!isDataSaver)}
                 disabled={isActive}
                 className={`hidden sm:flex items-center gap-1.5 px-2 py-1 rounded border transition-all ${isDataSaver
-                    ? 'bg-accent-green/10 border-accent-green/30 text-accent-green'
-                    : 'border-transparent hover:bg-glass text-secondary'
+                  ? 'bg-accent-green/10 border-accent-green/30 text-accent-green'
+                  : 'border-transparent hover:bg-glass text-secondary'
                   } disabled:opacity-50`}
                 title="Run shorter tests to save data"
               >
@@ -574,8 +575,8 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="pt-24 pb-12 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="pt-28 pb-12 px-4 sm:px-6 flex-grow flex flex-col justify-center min-h-[calc(100vh-4rem)]">
+        <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* Left Column: Controls & Main Display */}
           <div className="lg:col-span-5 flex flex-col gap-6">
@@ -605,12 +606,12 @@ const App: React.FC = () => {
                   ) : (
                     <button
                       onClick={startTest}
-                      className="group relative px-10 py-4 rounded-full bg-primary text-surface font-bold tracking-widest hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] overflow-hidden"
+                      className="group relative px-12 py-5 rounded-full bg-primary text-surface font-bold text-lg tracking-widest hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] overflow-hidden z-50"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                       <span className="relative z-10 flex items-center gap-2">
-                        <Play className="w-4 h-4 fill-current" />
-                        START
+                        <Play className="w-5 h-5 fill-current" />
+                        START TEST
                       </span>
                     </button>
                   )}
