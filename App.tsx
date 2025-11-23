@@ -25,6 +25,7 @@ import {
   Map as MapIcon,
   Sparkles
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { NetworkSimulationEngine } from './services/simulationEngine';
 import { fetchClientInfo, getBrowserNetworkEstimates } from './services/realNetwork';
 import { TestPhase, EngineState, TestResult, ClientInfo } from './types';
@@ -37,6 +38,8 @@ import StatCard from './components/StatCard';
 import InfoModal from './components/InfoModal';
 import ResultDetailsModal from './components/ResultDetailsModal';
 import CoverageMapModal from './components/CoverageMapModal';
+import AnimatedBackground from './components/AnimatedBackground';
+import ConfettiEffect from './components/ConfettiEffect';
 
 // Helper to get Brand Colors/Logo Data
 // Moved outside component for stability and performance
@@ -167,6 +170,7 @@ const App: React.FC = () => {
   const [showResultModal, setShowResultModal] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [openWithAI, setOpenWithAI] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Initialize throttling limit from local storage
   const [throttlingLimit, setThrottlingLimit] = useState<number | null>(() => {
@@ -348,6 +352,14 @@ const App: React.FC = () => {
     setSelectedResultId(newResult.id);
     setOpenWithAI(false);
     setShowResultModal(true);
+
+    // Trigger confetti for excellent results
+    const ping = finalState.ping || 0;
+    const downloadSpeed = finalState.downloadPeak || 0;
+    if (ping < 30 && downloadSpeed > 100) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+    }
   }, []);
 
   const handleUpdateResult = useCallback((id: string, updates: Partial<TestResult>) => {
@@ -459,6 +471,11 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface text-primary font-sans selection:bg-accent-cyan selection:text-black transition-colors duration-300">
+      {/* Animated Background */}
+      <AnimatedBackground />
+
+      {/* Confetti Effect */}
+      <ConfettiEffect trigger={showConfetti} />
 
       {/* Header */}
       {/* Header */}
@@ -594,26 +611,47 @@ const App: React.FC = () => {
                 {/* MOVED BUTTON HERE */}
                 <div className="mb-8 flex flex-col items-center w-full relative z-50">
                   {isActive ? (
-                    <button
+                    <motion.button
                       onClick={stopTest}
-                      className="group relative px-8 py-3 rounded-full bg-red-500/10 border border-red-500/50 text-red-500 font-bold tracking-wide hover:bg-red-500/20 transition-all active:scale-95 overflow-hidden"
+                      className="group relative px-8 py-3 rounded-full bg-red-500/10 border border-red-500/50 text-red-500 font-bold tracking-wide hover:bg-red-500/20 transition-all overflow-hidden"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       <span className="relative z-10 flex items-center gap-2">
                         <div className="w-2 h-2 bg-red-500 rounded-sm animate-spin" />
                         STOP TEST
                       </span>
-                    </button>
+                    </motion.button>
                   ) : (
-                    <button
+                    <motion.button
                       onClick={startTest}
-                      className="group relative px-12 py-5 rounded-full bg-primary text-surface font-bold text-lg tracking-widest hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] overflow-hidden z-50"
+                      className="group relative px-12 py-5 rounded-full bg-gradient-to-r from-accent-cyan via-accent-purple to-accent-cyan bg-[length:200%_auto] text-white font-display font-bold text-lg tracking-widest overflow-hidden"
+                      whileHover={{
+                        scale: 1.05,
+                        boxShadow: "0 0 40px rgba(0, 212, 255, 0.6), 0 0 60px rgba(157, 108, 255, 0.4)"
+                      }}
+                      whileTap={{ scale: 0.95 }}
+                      animate={{
+                        backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                      }}
+                      transition={{
+                        backgroundPosition: {
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "linear"
+                        }
+                      }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                      <span className="relative z-10 flex items-center gap-2">
+                      <motion.span
+                        className="relative z-10 flex items-center gap-2"
+                        animate={{ scale: [1, 1.02, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
                         <Play className="w-5 h-5 fill-current" />
                         START TEST
-                      </span>
-                    </button>
+                      </motion.span>
+                    </motion.button>
                   )}
                 </div>
 
@@ -811,14 +849,14 @@ const App: React.FC = () => {
               </div>
               <StatCard
                 label="Download"
-                value={engineState.downloadPeak > 0 ? engineState.downloadPeak.toFixed(1) : null}
+                value={engineState.downloadPeak > 0 ? engineState.downloadPeak : null}
                 unit="Mbps"
                 icon={<ArrowDown className="w-4 h-4" />}
                 color="text-accent-cyan"
               />
               <StatCard
                 label="Upload"
-                value={engineState.uploadPeak > 0 ? engineState.uploadPeak.toFixed(1) : null}
+                value={engineState.uploadPeak > 0 ? engineState.uploadPeak : null}
                 unit="Mbps"
                 icon={<ArrowUp className="w-4 h-4" />}
                 color="text-accent-purple"

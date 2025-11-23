@@ -1,108 +1,233 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Velocity - Network Analyzer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'monospace'],
-            },
-            colors: {
-              surface: 'var(--bg-surface)',
-              panel: 'var(--bg-panel)',
-              glass: 'var(--bg-glass)',
-              glassBorder: 'var(--border-glass)',
-              primary: 'var(--text-primary)',
-              secondary: 'var(--text-secondary)',
-              track: 'var(--color-track)',
-              accent: {
-                cyan: '#00D4FF',
-                purple: '#9D6CFF',
-                green: '#10B981',
-                yellow: '#F59E0B',
-                red: '#EF4444'
-              }
-            },
-            backgroundImage: {
-              'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Velocity - Network Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            surface: 'var(--bg-surface)',
+            panel: 'var(--bg-panel)',
+            glass: 'var(--bg-glass)',
+            glassBorder: 'var(--border-glass)',
+            primary: 'var(--text-primary)',
+            secondary: 'var(--text-secondary)',
+            track: 'var(--color-track)',
+            accent: {
+              cyan: '#00D4FF',
+              purple: '#9D6CFF',
+              green: '#10B981',
+              yellow: '#F59E0B',
+              red: '#EF4444'
             }
           },
+          backgroundImage: {
+            'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+          }
         },
-      }
-    </script>
-    <style>
-      :root {
-        /* Dark Theme Defaults */
-        --bg-surface: #0B0F14;
-        --bg-panel: #11161E;
-        --bg-glass: rgba(255, 255, 255, 0.03);
-        --bg-glass-heavy: rgba(17, 22, 30, 0.6);
-        --border-glass: rgba(255, 255, 255, 0.08);
-        --text-primary: #E2E8F0;
-        --text-secondary: #94A3B8;
-        --color-track: #1e293b;
+      },
+    }
+  </script>
+  <style>
+    :root {
+      /* Dark Theme Defaults */
+      --bg-surface: #0B0F14;
+      --bg-panel: #11161E;
+      --bg-glass: rgba(255, 255, 255, 0.03);
+      --bg-glass-heavy: rgba(17, 22, 30, 0.6);
+      --border-glass: rgba(255, 255, 255, 0.08);
+      --text-primary: #E2E8F0;
+      --text-secondary: #94A3B8;
+      --color-track: #1e293b;
+    }
+
+    .light {
+      /* Light Theme Overrides */
+      --bg-surface: #F0F4F8;
+      --bg-panel: #FFFFFF;
+      --bg-glass: rgba(0, 0, 0, 0.04);
+      --bg-glass-heavy: rgba(255, 255, 255, 0.75);
+      --border-glass: rgba(0, 0, 0, 0.08);
+      --text-primary: #0F172A;
+      --text-secondary: #64748B;
+      --color-track: #CBD5E1;
+    }
+
+    body {
+      background-color: var(--bg-surface);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-panel);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2d3748;
+      border-radius: 3px;
+    }
+
+    .glass-panel {
+      background: var(--bg-glass-heavy);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Leaflet Dark Mode Overrides for Popups */
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip {
+      background: var(--bg-panel) !important;
+      color: var(--text-primary) !important;
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
+    }
+
+    .leaflet-popup-content {
+      margin: 0;
+    }
+
+    .leaflet-container {
+      font-family: 'Inter', sans-serif !important;
+    }
+
+    /* Advanced Keyframe Animations */
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-100%);
       }
 
-      .light {
-        /* Light Theme Overrides */
-        --bg-surface: #F0F4F8;
-        --bg-panel: #FFFFFF;
-        --bg-glass: rgba(0, 0, 0, 0.04);
-        --bg-glass-heavy: rgba(255, 255, 255, 0.75);
-        --border-glass: rgba(0, 0, 0, 0.08);
-        --text-primary: #0F172A;
-        --text-secondary: #64748B;
-        --color-track: #CBD5E1;
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    @keyframes glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
       }
 
-      body {
-        background-color: var(--bg-surface);
-        color: var(--text-primary);
-        transition: background-color 0.3s ease, color 0.3s ease;
+      50% {
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.8), 0 0 60px rgba(0, 212, 255, 0.4);
       }
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 6px;
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7);
       }
-      ::-webkit-scrollbar-track {
-        background: var(--bg-panel);
+
+      70% {
+        box-shadow: 0 0 0 20px rgba(0, 212, 255, 0);
       }
-      ::-webkit-scrollbar-thumb {
-        background: #2d3748;
-        border-radius: 3px;
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
       }
-      .glass-panel {
-        background: var(--bg-glass-heavy);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid var(--border-glass);
-        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
       }
-      /* Leaflet Dark Mode Overrides for Popups */
-      .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-        background: var(--bg-panel) !important;
-        color: var(--text-primary) !important;
-        backdrop-filter: blur(12px);
-        border: 1px solid var(--border-glass);
+
+      50% {
+        transform: translateY(-10px);
       }
-      .leaflet-popup-content {
-        margin: 0;
+    }
+
+    @keyframes gradient-shift {
+
+      0%,
+      100% {
+        background-position: 0% 50%;
       }
-      .leaflet-container {
-        font-family: 'Inter', sans-serif !important;
+
+      50% {
+        background-position: 100% 50%;
       }
-    </style>
+    }
+
+    @keyframes scale-in {
+      0% {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slide-up {
+      0% {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes rotate-gradient {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Smooth scroll behavior */
+    * {
+      scroll-behavior: smooth;
+    }
+
+    /* Enhanced selection */
+    ::selection {
+      background: rgba(0, 212, 255, 0.3);
+      color: inherit;
+    }
+
+    /* Webkit font smoothing */
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -117,8 +242,10 @@
 }
 </script>
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>
